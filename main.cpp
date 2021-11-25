@@ -7,10 +7,10 @@
 using namespace std;
 
 double std_acceleration = 1;
-int numberOfParticles = 10;
+int numberOfParticles = 16;
 double minVelocity = 5;
 double maxVelocity = 10;
-int trackLength = 10;
+double trackLength = 10;
 double tickRate = 1000;
 double particleRadius = 0.01;
 double tickFrequency = 1/tickRate;
@@ -30,6 +30,14 @@ class Particle {
 
 vector<Particle> particleList;
 
+//integer modulo function that handles negatives >:(
+double nmod(double dividend, double divisor) {
+    if(dividend < 0) {
+        return (dividend + divisor);
+    }
+    return fmod(dividend, divisor);
+};
+
 //finds the initial spacing between particles
 double findSpacing() {
     return trackLength/numberOfParticles;
@@ -37,9 +45,8 @@ double findSpacing() {
 
 //returns a random velocity between the min and max velocities specified above
 double randVelocity() {
-    int randToInt = (1000000 * (rand() / 32767));
-    double randToDouble = minVelocity + ((maxVelocity - minVelocity) * (((double)randToInt) / 1000000));
-    return randToDouble;
+    double cutRand = (double)rand() / 32767;
+    return (double)minVelocity + (((double)maxVelocity - (double)minVelocity) * cutRand);
 };
 
 //returns a single particle object
@@ -51,38 +58,37 @@ Particle generateParticle(double idealvelocity, double initialposition) {
 //generates the particles and adds them to the particle list
 void loadParticles() {
     for(int i = 0; i < numberOfParticles; i++) {
-        particleList.push_back(generateParticle(randVelocity(), i*findSpacing()));
+        double rV = randVelocity();
+        particleList.push_back(generateParticle(rV, i*findSpacing()));
         particleList[i].currentposition = particleList[i].initialposition;
         particleList[i].currentvelocity = particleList[i].idealvelocity;
     }
-}
-
-//manages the velocities of the particle after the collision
-void Collision(Particle particle1, Particle particle2) {
-    double pv1 = particle1.currentvelocity;
-    double pv2 = particle2.currentvelocity;
-    particle1.currentvelocity = pv2;
-    particle2.currentvelocity = pv1;
 };
 
-bool didCollide(Particle particle1, Particle particle2) {
-    double pi1 = particle1.currentposition;
-    double pi2 = particle2.currentposition;
-    if(pi1>pi2) {
-        pi2 += trackLength;
-    };
+void didCollide(int i) {
     
     //estimates where the particle will be after one tick and checks if it steps into the bounding box of another particle
-    double pf1 = fmod(pf1 + (double)(particle1.currentvelocity*tickFrequency + particleRadius), trackLength);
-    double pf2 = fmod(pf2 + (double)(particle2.currentvelocity*tickFrequency + particleRadius), trackLength);
+    double pf0 = fmod(particleList[nmod((i-1),numberOfParticles)].currentposition + (double)(particleList[nmod((i-1),numberOfParticles)].currentvelocity*tickFrequency + particleRadius), trackLength);
+    double pf1l = fmod(particleList[i].currentposition + (double)(particleList[i].currentvelocity*tickFrequency - particleRadius), trackLength);
+    double pf1m = fmod(particleList[i].currentposition + (double)(particleList[i].currentvelocity*tickFrequency + particleRadius), trackLength);
+    double pf2 = fmod(particleList[nmod((i+1),numberOfParticles)].currentposition + (double)(particleList[nmod((i+1),numberOfParticles)].currentvelocity*tickFrequency - particleRadius), trackLength);
     
-    if(pf1>=pf2) {
-        return 1;
-    }
-    else {
-        return 0;
+    //compares positions
+    bool comparePiAndMore = pf1m < pf2;
+    bool comparePiAndLess = pf1l < pf0;
+    bool comparePMoreAndLess = pf2 < pf0;
+
+    //checks if compared positions are correct
+    if(!(((comparePiAndMore) && (comparePiAndLess) && (comparePMoreAndLess)) || ((comparePiAndMore) && (!comparePiAndLess) && (!comparePMoreAndLess)) || ((!comparePiAndMore) && (!comparePiAndLess) && (comparePMoreAndLess)))) {
+        printf("yup: %d\n", i);
+        double pv1 = particleList[i].currentvelocity;
+        double pv2 = particleList[nmod((i+1),numberOfParticles)].currentvelocity;
+        particleList[i].currentvelocity = pv2;
+        particleList[nmod((i+1),numberOfParticles)].currentvelocity = pv1;
+        //didCollide(nmod((i-1),numberOfParticles));
+        //didCollide(nmod((i+1),numberOfParticles));
     };
-}
+};
 
 void accelerateParticles() {
     for(int i = 0; i < numberOfParticles; i++) {
@@ -101,19 +107,28 @@ void accelerateParticles() {
 
 //advances the particles one tick forwards
 void iterate() {
+
     for(int i = 0; i < numberOfParticles; i++) {
-        if(didCollide(particleList[i], particleList[(i+1)%numberOfParticles])) {
-            Collision(particleList[i], particleList[(i+1)%numberOfParticles]);
-        }
+        didCollide(i);
     };
     accelerateParticles();
 }
 
 //figures out if any of the particles are in the wrong position   
 void areParticlesFucked() {
+    int pf0, pf1, pf2;
     for(int i = 0; i < numberOfParticles; i++) {
-        if(!(((particleList[i].currentposition < particleList[(i+1)%numberOfParticles].currentposition) && (particleList[i].currentposition < particleList[(i-1)%numberOfParticles].currentposition) && (particleList[(i+1)%numberOfParticles].currentposition < particleList[(i-1)%numberOfParticles].currentposition)) || ((particleList[i].currentposition < particleList[(i+1)%numberOfParticles].currentposition) && (particleList[i].currentposition > particleList[(i-1)%numberOfParticles].currentposition) && (particleList[(i+1)%numberOfParticles].currentposition > particleList[(i-1)%numberOfParticles].currentposition)) || ((particleList[i].currentposition > particleList[(i+1)%numberOfParticles].currentposition) && (particleList[i].currentposition > particleList[(i-1)%numberOfParticles].currentposition) && (particleList[(i+1)%numberOfParticles].currentposition < particleList[(i-1)%numberOfParticles].currentposition)))) {
-            printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH: %d", i);
+
+        pf0 = particleList[nmod((i-1),numberOfParticles)].currentposition;
+        pf1 = particleList[i].currentposition;
+        pf2 = particleList[nmod((i+1),numberOfParticles)].currentposition;
+
+        bool comparePiAndMore = pf1 < pf2;
+        bool comparePiAndLess = pf1 < pf0;
+        bool comparePMoreAndLess = pf2 < pf0;
+
+        if(!(((comparePiAndMore) && (comparePiAndLess) && (comparePMoreAndLess)) || ((comparePiAndMore) && (!comparePiAndLess) && (!comparePMoreAndLess)) || ((!comparePiAndMore) && (!comparePiAndLess) && (comparePMoreAndLess)))) {
+            printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH: %d\n", i);
         };
     };
 };
@@ -137,50 +152,52 @@ void meanResiduals() {
     double lowestResidual = abs(particleList[0].idealvelocity - meanvelocity);
     int lowestIndex;
     double individualResidual;
-    printf("\nMean residuals:");
+    printf("\nMean residuals:\n");
     for(int i = 0; i < numberOfParticles; i++) {
         individualResidual = abs(particleList[i].idealvelocity - meanvelocity);
         if (individualResidual < lowestResidual) {
             lowestResidual = individualResidual;
             lowestIndex = i;
         };
-        printf("%d: %d", i, individualResidual);
+        printf("%d: %lf\n", i, individualResidual);
     };
-    printf("Lowest residual: %d: %d", lowestIndex, lowestResidual);
+    printf("Lowest residual: %d: %lf\n", lowestIndex, lowestResidual);
 }
 
 //prints the current stats on all of the particles
 void printCurrentParticleData() {
     for(int i = 0; i < numberOfParticles; i++) {
-        printf("%d: Current position: %d, Current velocity: %d", i, particleList[i].currentposition, particleList[i].currentvelocity);
+        printf("%d: Current position: %lf, Current velocity: %lf\n", i, particleList[i].currentposition, particleList[i].currentvelocity);
     };
 };
 
 //prints the intial stats of all the particles
 void printInitialParticleData() {
     for(int i = 0; i < numberOfParticles; i++) {
-        printf("%d: Initial position: %d, Ideal velocity: %d", i, particleList[i].initialposition, particleList[i].idealvelocity);
+        printf("%d: Initial position: %lf, Ideal velocity: %lf\n", i, particleList[i].initialposition, particleList[i].idealvelocity);
     };
 };
 
 
 //number of iterations
-int iterationNumber = 100000;
+int iterationNumber = 20000;
 
 
 int main(void) {
+    printf("nmod: %lf", nmod(-0.99, 10));
     srand(time(0));
     printf("Seed: %d\n",rand());
     loadParticles();
     printCurrentParticleData();
-    for(int i = 0; i < numberOfParticles; i++) {
+    for(int i = 0; i < iterationNumber; i++) {
         iterate();
-        printf("\nIteration number: %d", i + 1);
+        printf("\nIteration number: %d\n", i + 1);
         printCurrentParticleData();
-        areParticlesFucked();
+        //areParticlesFucked();
     }
-    printf("\nInitial particle data: ");
+    printf("\nInitial particle data: \n");
+    //printCurrentParticleData();
     printInitialParticleData();
-    printf("Mean velocity: %d", meanVelocity());
+    printf("\nMean velocity: %lf", meanVelocity());
     meanResiduals();
 };
