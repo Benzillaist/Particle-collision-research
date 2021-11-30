@@ -6,6 +6,7 @@
 
 using namespace std;
 
+//declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
 int numberOfParticles = 20;
 double minVelocity = 5;
@@ -18,11 +19,13 @@ double tickFrequency = 1/tickRate;
 //Standard particle class for storing particle data
 class Particle {
     public:
+
+    //each particle consists of the ideal velocity and starting position, which will stay static, and then the current position and velocity, which will be changed during the simulation
         double idealvelocity;
         double initialposition;
         double currentvelocity;
         double currentposition;
-        Particle(double idealv, double initialp) {
+        Particle(double idealv, double initialp) { //constructor function
             idealvelocity = idealv;
             initialposition = initialp;
         }
@@ -65,6 +68,8 @@ void loadParticles() {
     }
 };
 
+
+//outdated collision management method
 void didCollide(int i) {
     
     //estimates where the particle will be after one tick and checks if it steps into the bounding box of another particle
@@ -90,40 +95,58 @@ void didCollide(int i) {
     };
 };
 
+//updated collision management function
 void didCollideV2() {
     double x0, x1, distance, v0, v1;
-    for(int i = 0; i < numberOfParticles; i++) {
+    for(int i = 0; i < numberOfParticles; i++) { //for each particle and the succeeding one:
+
+        //get both particle's positions
         x0 = particleList[i].currentposition;
         x1 = particleList[nmod(i+1, numberOfParticles)].currentposition;
-        distance = x1 - x0;
+
+        //finds the distance between
+        distance = x1 - x0; 
+
+        //get each particles velocity
         v0 = particleList[i].currentvelocity;
         v1 = particleList[nmod(i+1, numberOfParticles)].currentvelocity;
+
         if(distance <= (-2 * particleRadius)) {
-            distance += trackLength;
+            distance += trackLength; //if the distance is negative, it means that the succeeding particle has looped around, so i add on to the distance to account for that change
         }
-        if((abs(distance) < 2 * particleRadius) && (v0 > v1)) {
+        if((abs(distance) < 2 * particleRadius) && (v0 > v1)) { //if the particles are overlapping and are coming closer together, the velocities switch
+            //swaps velocities of the two particles
             particleList[i].currentvelocity = v1;
             particleList[nmod((i+1),numberOfParticles)].currentvelocity = v0;
         }
     }
 }
 
+//function that accelerates particles back to their ideal velocity if the particle is not at previously states ideal velocity
 void accelerateParticles() {
     for(int i = 0; i < numberOfParticles; i++) {
+
+        //updates position of each of the particles
         particleList[i].currentposition = fmod(particleList[i].currentposition + (particleList[i].currentvelocity*tickFrequency), trackLength);
+
+        //if the difference in between the current and ideal velocities is equal to or lower than the change that would occur if the particle is accelerated, the current velocity is set equal to the ideal velocity
         if(abs(particleList[i].idealvelocity - particleList[i].currentvelocity) <= (std_acceleration*tickFrequency)) {
             particleList[i].currentvelocity = particleList[i].idealvelocity;
         }
+
+        //if the current velocity is greater than the ideal velocity, then the current velocity is decreased by the acceleration every tick
         else if((particleList[i].idealvelocity - particleList[i].currentvelocity) < 0) {
             particleList[i].currentvelocity -= (std_acceleration*tickFrequency);
         }
+
+        //if the current velocity is less than the ideal velocity, then the current velocity is increased by the acceleration every tick
         else if((particleList[i].idealvelocity - particleList[i].currentvelocity) > 0) {
             particleList[i].currentvelocity += (std_acceleration*tickFrequency);
         };
     }
 };
 
-//advances the particles one tick forwards
+//old method that advanced the particles one tick forwards
 void iterate() {
 
     for(int i = 0; i < numberOfParticles; i++) {
@@ -133,18 +156,21 @@ void iterate() {
 }
 
 //figures out if any of the particles are in the wrong position   
-void areParticlesFucked() {
+void areParticlesMessedUp() {
     int pf0, pf1, pf2;
     for(int i = 0; i < numberOfParticles; i++) {
 
+        //gets position of each particle, the one in front of it, and the one behind it
         pf0 = particleList[nmod((i-1),numberOfParticles)].currentposition;
         pf1 = particleList[i].currentposition;
         pf2 = particleList[nmod((i+1),numberOfParticles)].currentposition;
 
+        //compares the positions of each of the particles with each other
         bool comparePiAndMore = pf1 < pf2;
         bool comparePiAndLess = pf1 < pf0;
         bool comparePMoreAndLess = pf2 < pf0;
 
+        //checks if the combination of the above comparisons is one of the three legal permutations, and if not, makes you aware of it
         if(!(((comparePiAndMore) && (comparePiAndLess) && (comparePMoreAndLess)) || ((comparePiAndMore) && (!comparePiAndLess) && (!comparePMoreAndLess)) || ((!comparePiAndMore) && (!comparePiAndLess) && (comparePMoreAndLess)))) {
             printf("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH: %d\n", i);
         };
@@ -155,7 +181,7 @@ void areParticlesFucked() {
 
 double radiusTolerance = 5;
 
-//prints the Lowest Ideal Velocity
+//searches through the particle list and identifies the one with the Lowest Ideal Velocity
 int lowestIV() {
     double lV = particleList[0].idealvelocity;
     double tV;
@@ -238,23 +264,47 @@ void printInitialParticleData() {
 
 
 
-//number of iterations
+//max number of iterations for each run, the total seconds that elapse is equal to iterationNumber/tickRate
 int iterationNumber = 5000000;
+
+//number of runs that will be ran
 int numberOfRuns = 1000;
 
 int main(void) {
     int isFrontRun = 0;
     int completedRuns = 0;
+
+    //runs the number of previously specified simulations
     for(int j = 0; j < numberOfRuns; j++) {
+
+        //resets the particle list from any past runs
         particleList.clear();
+
+        //resets the random number generator so I don't get the same particles each time
         srand(time(0));
+
+        //prints the "seed", so each run can be re-ran at a later time
         printf("Seed: %d\n",rand());
+
+        //generates all the particles based off the previous random number generation
         loadParticles();
+
+        //prints initial particle data
         printCurrentParticleData();
+
+        //runs for a maximum of cycles that was previously defined
         for(int i = 0; i <= iterationNumber; i++) {
+
+            //manages and collisions that would have happened for each particle
             didCollideV2();
+
+            //moves and accelerates each particle
             accelerateParticles();
+
+            //checks every 1000 ticks to see if the particles have all bunched up, if so, it prints the particle data and then leaves the loop
             if((i%1000) == 0) {
+
+
                 if(fullHouse() == 1) {
                     printf("\nIteration number: %d\n", i);
                     printCurrentParticleData();
@@ -262,20 +312,28 @@ int main(void) {
                     break;    
                 }
             }
+
+            //since printing out each tick would clog the console and not be useful for debugging or analyzing, I only print out every 10000 ticks
             if((i%100000) == 0) {
                 printf("\nIteration number: %d\n", i);
                 printCurrentParticleData();
             }
-        }    
+        }
+
+        //general methods that are useful for analyzing data and debugging
         printf("\nInitial particle data: \n");
         printInitialParticleData();
         printf("\nMean velocity: %lf", meanVelocity());
         meanResiduals();
         printf("Lowest ideal velocity: %d: %lf\n", lowestIV(), particleList[lowestIV()].idealvelocity);
         printf("Start of chain: %d\n", findFront());
+
+        //if the particle with the lowest velocity is the one at the front of the chain, it adds one to the counter
         if((findFront() == lowestIV()) && (fullHouse() == 1)) {
             isFrontRun++;
         }
     }
+
+    //prints the number of successful runs to the number of runs where the particle with the lowest velocity was at the front
     printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
 };
