@@ -8,10 +8,10 @@ using namespace std;
 
 //declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
-int numberOfParticles = 20;
+int numberOfParticles = 10;
 double minVelocity = 5;
 double maxVelocity = 10;
-double trackLength = 2;
+double trackLength = 10;
 double tickRate = 10000;
 double particleRadius = 0.02;
 double tickFrequency = 1/tickRate;
@@ -268,7 +268,7 @@ void printInitialParticleData() {
 int iterationNumber = 5000000;
 
 //number of runs that will be ran
-int numberOfRuns = 1000;
+int numberOfRuns = 1;
 
 int main(void) {
     int isFrontRun = 0;
@@ -280,7 +280,7 @@ int main(void) {
         //resets the particle list from any past runs
         particleList.clear();
 
-        //resets the random number generator so I don't get the same particles each time
+        //resets the random number generator "seed" so I don't get the same particles each time
         srand(time(0));
 
         //prints the "seed", so each run can be re-ran at a later time
@@ -314,7 +314,7 @@ int main(void) {
             }
 
             //since printing out each tick would clog the console and not be useful for debugging or analyzing, I only print out every 10000 ticks
-            if((i%100000) == 0) {
+            if((i%1000) == 0) {
                 printf("\nIteration number: %d\n", i);
                 printCurrentParticleData();
             }
