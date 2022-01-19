@@ -25,7 +25,7 @@ int iterationNumber = 5000000;
 bool elasticCollision = false;
 
 //number of runs that will be ran
-int numberOfRuns = 1000;
+int numberOfRuns = 2;
 
 
 
@@ -455,6 +455,8 @@ int main(void) {
             }
             //averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
             //E_printAverageMasses();
+
+            particleListSize = numParticles;
         }
     }
 
