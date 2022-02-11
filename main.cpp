@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -25,7 +26,7 @@ int iterationNumber = 5000000;
 bool elasticCollision = false;
 
 //number of runs that will be ran
-int numberOfRuns = 2;
+int numberOfRuns = 1000;
 
 
 
@@ -48,6 +49,9 @@ class Particle {
 
 vector<Particle> particleList;
 vector<double> averageMassList (10,0);
+vector<double> deltaTimeList;
+vector<double> tempTimeList;
+double tempTime = 0;
 
 //METHODS
 
@@ -200,6 +204,7 @@ void I_processNextCollision() {
         printf("no elegible particle was removed\n");
     }
     else {
+        tempTime += minCollisionTime;
         p0Mass = particleList[minCollisionIndex].currentmass;
         p1Mass = particleList[nmod(minCollisionIndex + 1,particleListSize)].currentmass;
         totalMass = p0Mass + p1Mass;
@@ -210,7 +215,6 @@ void I_processNextCollision() {
         printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
     }
 
-    //particleListSize--;
 }
 
 
@@ -376,12 +380,13 @@ int main(void) {
 
     //runs the number of previously specified simulations
     for(int j = 0; j < numberOfRuns; j++) {
+        //printf("J: %d\n", j);
 
         //resets the particle list from any past runs
         particleList.clear();
 
         //resets the random number generator "seed" so I don't get the same particles each time
-        srand(time(0));
+        srand(time(0)+j);
 
         //prints the "seed", so each run can be re-ran at a later time
         printf("Seed: %d\n",rand());
@@ -437,6 +442,7 @@ int main(void) {
         else if(elasticCollision == false) {
 
             //averageMassList.assign(10,0);
+            tempTime = 0;
 
             printf("\nInitial particle data: \n");
             printInitialParticleData();
@@ -453,6 +459,8 @@ int main(void) {
                 printf("Mean velocity: %lf\n", I_meanVelocity());
                 particleListSize--;
             }
+
+            deltaTimeList.push_back(tempTime);
             //averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
             //E_printAverageMasses();
 
@@ -461,6 +469,19 @@ int main(void) {
     }
 
     //prints the number of successful runs to the number of runs where the particle with the lowest velocity was at the front
+    double sum = 0;
+    if(elasticCollision == false) {
+        for(int i = 0; i < deltaTimeList.size(); i++) {
+            sum += deltaTimeList[i];
+        }
+
+        ofstream timeFile ("timeFile.txt");
+
+        for(int i = 0; i < deltaTimeList.size(); i ++){
+            timeFile << deltaTimeList[i] << " " ;
+        }
+    }
+
     if(elasticCollision == true) {
         printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
     }
