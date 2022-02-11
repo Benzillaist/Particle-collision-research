@@ -14,7 +14,7 @@ for i in times:
     if i <= (timesMean + (timesStd)):
         revTimes = np.append(revTimes, i) 
 
-print(revTimes)
+#print(revTimes)
 time_bins = np.linspace(0, np.amax(revTimes), 20)
 
 plt.hist(revTimes, bins = time_bins)
@@ -22,9 +22,7 @@ plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.show()
 
-print(time_bins)
-
-print(timesStd)
-print(timesMean)
+print(f'Standard deviation of times: {timesStd}')
+print(f'Mean of times: {timesMean}')
 
 #print(times)

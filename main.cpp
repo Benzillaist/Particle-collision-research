@@ -350,7 +350,7 @@ void printInitialParticleData() {
 
 
 //returns the largest mass out of all the particles
-/*int E_largestMass() {
+int E_largestMass() {
     double lM = particleList[0].currentmass;
     double tM;
     int li = 0;
@@ -369,7 +369,7 @@ void E_printAverageMasses() {
     for(int i = 0; i < averageMassList.size(); i++) {
         printf("\n%d: %lf", i, averageMassList[i]/(double)numberOfRuns);
     }
-}*/
+}
 
 
 //Main method, runs code :D
