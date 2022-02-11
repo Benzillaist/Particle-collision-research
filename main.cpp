@@ -48,7 +48,8 @@ class Particle {
 };
 
 vector<Particle> particleList;
-vector<double> averageMassList (10,0);
+vector<double> averageMassList (numParticles, 0);
+vector<double> finalMassList (numParticles, 0);
 vector<double> deltaTimeList;
 vector<double> tempTimeList;
 double tempTime = 0;
@@ -376,7 +377,8 @@ double E_averageMass() {
 void E_printAverageMasses() {
     printf("\nAverage largest mass after each collision:");
     for(int i = 0; i < averageMassList.size(); i++) {
-        printf("\n%d: %lf", i, averageMassList[i]);
+        printf("\n%d: %lf", i, averageMassList[i] / double(numberOfRuns));
+        finalMassList[i] = averageMassList[i] / double(numberOfRuns);
     }
 }
 
@@ -488,6 +490,12 @@ int main(void) {
 
         for(int i = 0; i < deltaTimeList.size(); i ++){
             timeFile << deltaTimeList[i] << " " ;
+        }
+
+        ofstream massFile ("massFile.txt");
+
+        for(int i = 0; i < finalMassList.size(); i ++){
+            massFile << finalMassList[i] << " " ;
         }
     }
 
