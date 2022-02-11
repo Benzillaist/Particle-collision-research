@@ -10,7 +10,7 @@ using namespace std;
 
 //declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
-int numParticles = 10;
+int numParticles = 100;
 int particleListSize = numParticles;
 double minVelocity = 5;
 double maxVelocity = 10;
