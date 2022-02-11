@@ -363,11 +363,20 @@ int E_largestMass() {
     return lM;
 };
 
+//returns average mass of all the particles
+double E_averageMass() {
+    double sum = 0;
+    for(int i = 0; i < particleListSize; i++) {
+        sum += (double)particleList[i].currentmass;
+    }
+    return sum/particleListSize;
+}
+
 //prints the average masses from all the runs
 void E_printAverageMasses() {
     printf("\nAverage largest mass after each collision:");
     for(int i = 0; i < averageMassList.size(); i++) {
-        printf("\n%d: %lf", i, averageMassList[i]/(double)numberOfRuns);
+        printf("\n%d: %lf", i, averageMassList[i]);
     }
 }
 
@@ -452,7 +461,7 @@ int main(void) {
             printf("Start of chain: %d\n", findFront());
 
             while(particleListSize>1) {
-                //averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
+                averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
                 cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
                 I_printCurrentParticleData();
@@ -461,8 +470,8 @@ int main(void) {
             }
 
             deltaTimeList.push_back(tempTime);
-            //averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
-            //E_printAverageMasses();
+            averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
+            E_printAverageMasses();
 
             particleListSize = numParticles;
         }
