@@ -25,7 +25,9 @@ timesStd = np.std(timesS)
 timesMax = np.max(timesS)
 timesMin = np.min(timesS)
 
-meanResiduals = getDataList("timeFile.txt", "stdDevs")
+stdDevs = getDataList("timeFile.txt", "stdDevs")
+
+meanVelocities = getDataList("timeFile.txt", "meanVelocities")
 
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
 
@@ -48,20 +50,24 @@ print(f'Standard deviation of revised times: {revTimesStd}')
 print(f'Mean of revised times: {revTimesMean}')
 print(f'Min of revised times: {revTimesMin}')
 #print(times)
+
+#creation of histogram polygon
 time_bins = np.linspace(0, np.amax(revTimesMean + revTimesStd), 15)
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
 y,edges = np.histogram(revTimes, time_bins)
 
+#creation of best-fit line
 timeBestFitCoeffs = np.polyfit(timeBinCenters, y, 2)
 timeBestFit = timeBestFitCoeffs[2] + timeBestFitCoeffs[1] * pow(timeBinCenters, 1) + timeBestFitCoeffs[0] * pow(timeBinCenters, 2)
 
+#Run length histograms
 plt.hist(revTimes, bins = time_bins)
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
 plt.show()
 
-
+#Polygon of run length histogram
 plt.plot(timeBinCenters,y,'-*')
 #plt.plot(timeBinCenters,timeBestFit,'-')
 plt.xlabel("Run times")
@@ -69,12 +75,24 @@ plt.ylabel("Frequency of run times")
 plt.title("Polygon of run time frequencies")
 plt.show()
 
-print(meanResiduals)
-print(times)
+#3D stddev, mean velocity, and run length scatterplot
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
 
-plt.scatter(meanResiduals, times)
+ax.scatter(stdDevs, meanVelocities, times)
+ax.set_xlabel('Standard deviation of velocities')
+ax.set_ylabel('Mean of velocities')
+ax.set_zlabel('Z Label')
 plt.show()
 
+print(stdDevs)
+print(times)
+
+#scatterplot of stddev and run length
+plt.scatter(stdDevs, times)
+plt.show()
+
+#best fit time line
 """
 plt.plot(timeBinCenters,timeBestFit,'-')
 plt.xlabel("Run times")
@@ -85,6 +103,7 @@ plt.show()
 
 mass_X = np.arange(0, masses.size, 1)
 
+#average mass per collition
 plt.plot(mass_X, masses)
 plt.xlabel("Collision number")
 plt.ylabel("Average mass")

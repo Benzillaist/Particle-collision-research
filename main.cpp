@@ -28,7 +28,7 @@ bool elasticCollision = false;
 //number of runs that will be ran
 int numberOfRuns = 10000;
 
-
+//Lists:
 
 //Standard particle class for storing particle data
 class Particle {
@@ -40,10 +40,14 @@ class Particle {
         double currentvelocity;
         double currentposition;
         int currentmass;
-        Particle(double idealv, double initialp) { //constructor function
+        int leadParticle;
+        double leadParticleVelocity;
+        Particle(double idealv, double initialp, int ID) { //constructor function
             idealvelocity = idealv;
             initialposition = initialp;
             currentmass = 1;
+            leadParticle = ID;
+            leadParticleVelocity = idealv;
         }
 };
 
@@ -53,6 +57,7 @@ vector<double> finalMassList (numParticles, 0);
 vector<double> deltaTimeList;
 vector<double> tempTimeList;
 vector<double> stdDevList;
+vector<double> meanVelocityList;
 double tempTime = 0;
 
 //METHODS
@@ -78,7 +83,7 @@ double randVelocity() {
 
 //returns a single particle object
 Particle generateParticle(double idealvelocity, double initialposition) {
-    Particle particle = Particle(idealvelocity, initialposition);
+    Particle particle = Particle(idealvelocity, initialposition, particleList.size());
     return particle;
 };
 
@@ -208,10 +213,12 @@ void I_processNextCollision() {
     else {
         tempTime += minCollisionTime;
         p0Mass = particleList[minCollisionIndex].currentmass;
-        p1Mass = particleList[nmod(minCollisionIndex + 1,particleListSize)].currentmass;
+        p1Mass = particleList[nmod(minCollisionIndex + 1, particleListSize)].currentmass;
         totalMass = p0Mass + p1Mass;
         particleList[minCollisionIndex].currentvelocity = ((particleList[minCollisionIndex].currentvelocity * (double)p0Mass) + (particleList[nmod(minCollisionIndex + 1, particleListSize)].currentvelocity * (double)p1Mass))/ (double)totalMass;
         particleList[minCollisionIndex].currentmass = totalMass;
+        particleList[minCollisionIndex].leadParticle = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticle;
+        particleList[minCollisionIndex].leadParticleVelocity = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity;
 
         particleList.erase(particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
         //printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
@@ -333,8 +340,8 @@ void meanResiduals() {
         residualSum += tempResidualList[i] * tempResidualList[i];
         printf("\nTemp residual: %lf", tempResidualList[i]);
     }
-    printf("\nResidual sum: %lf\n", residualSum);
     stdDevList.push_back(sqrt(residualSum/(double)tempResidualList.size()));
+    meanVelocityList.push_back(meanvelocity);
     printf("Lowest residual: %d: %lf\n", lowestIndex, lowestResidual);
 }
 
@@ -466,15 +473,15 @@ int main(void) {
             tempTime = 0;
 
             //printf("\nInitial particle data: \n");
-            //printInitialParticleData();
-            //printf("\nMean velocity: %lf", E_meanVelocity());
+            printInitialParticleData();
+            printf("\nMean velocity: %lf", I_meanVelocity());
             meanResiduals();
             printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
             printf("Start of chain: %d\n", findFront());
 
             while(particleListSize>1) {
                 averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
-                cout << "\n" << particleListSize << "\n";
+                //cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
                 //I_printCurrentParticleData();
                 //printf("Mean velocity: %lf\n", I_meanVelocity());
@@ -484,6 +491,9 @@ int main(void) {
             deltaTimeList.push_back(tempTime);
             averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
             E_printAverageMasses();
+
+            printf("\nLead particle ID: %d", particleList[0].leadParticle);
+            printf("\nLead particle velocity: %lf", particleList[0].leadParticleVelocity);
 
             particleListSize = numParticles;
         }
@@ -502,10 +512,13 @@ int main(void) {
         for(int i = 0; i < deltaTimeList.size(); i ++){
             timeFile << deltaTimeList[i] << " " ;
         }
-        //timeFile << "\n";
         timeFile << "}stdDevs{";
         for(int i = 0; i < stdDevList.size(); i ++) {
             timeFile <<  stdDevList[i] << " ";
+        }
+        timeFile << "}meanVelocities{";
+        for(int i = 0; i < meanVelocityList.size(); i ++) {
+            timeFile <<  meanVelocityList[i] << " ";
         }
         timeFile << "}";
 
