@@ -25,7 +25,7 @@ timesStd = np.std(timesS)
 timesMax = np.max(timesS)
 timesMin = np.min(timesS)
 
-meanResiduals = getDataList("timeFile.txt", "meanResiduals")
+meanResiduals = getDataList("timeFile.txt", "stdDevs")
 
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
 
