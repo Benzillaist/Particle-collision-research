@@ -26,7 +26,7 @@ int iterationNumber = 5000000;
 bool elasticCollision = false;
 
 //number of runs that will be ran
-int numberOfRuns = 1000;
+int numberOfRuns = 10000;
 
 
 
@@ -52,6 +52,7 @@ vector<double> averageMassList (numParticles, 0);
 vector<double> finalMassList (numParticles, 0);
 vector<double> deltaTimeList;
 vector<double> tempTimeList;
+vector<double> meanResidualList;
 double tempTime = 0;
 
 //METHODS
@@ -316,8 +317,11 @@ void meanResiduals() {
     double lowestResidual = abs(particleList[0].idealvelocity - meanvelocity);
     int lowestIndex;
     double individualResidual;
+    double residualSum = 0;
+    vector<double> tempResidualList;
     printf("\nMean residuals:\n");
     for(int i = 0; i < particleListSize; i++) {
+        tempResidualList.push_back(particleList[i].idealvelocity - meanvelocity);
         individualResidual = abs(particleList[i].idealvelocity - meanvelocity);
         if (individualResidual < lowestResidual) {
             lowestResidual = individualResidual;
@@ -325,6 +329,10 @@ void meanResiduals() {
         };
         printf("%d: %lf\n", i, individualResidual);
     };
+    for(int i = 0; i < particleListSize; i++) {
+        residualSum += tempResidualList[i];
+    }
+    meanResidualList.push_back(residualSum/tempResidualList.size());
     printf("Lowest residual: %d: %lf\n", lowestIndex, lowestResidual);
 }
 
@@ -455,9 +463,9 @@ int main(void) {
             //averageMassList.assign(10,0);
             tempTime = 0;
 
-            printf("\nInitial particle data: \n");
-            printInitialParticleData();
-            printf("\nMean velocity: %lf", E_meanVelocity());
+            //printf("\nInitial particle data: \n");
+            //printInitialParticleData();
+            //printf("\nMean velocity: %lf", E_meanVelocity());
             meanResiduals();
             printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
             printf("Start of chain: %d\n", findFront());
@@ -466,7 +474,7 @@ int main(void) {
                 averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
                 cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
-                I_printCurrentParticleData();
+                //I_printCurrentParticleData();
                 printf("Mean velocity: %lf\n", I_meanVelocity());
                 particleListSize--;
             }
@@ -490,6 +498,10 @@ int main(void) {
 
         for(int i = 0; i < deltaTimeList.size(); i ++){
             timeFile << deltaTimeList[i] << " " ;
+        }
+        timeFile << "\n";
+        for(int i = 0; i < meanResidualList.size(); i ++) {
+            timeFile <<  meanResidualList[i] << " ";
         }
 
         ofstream massFile ("massFile.txt");
