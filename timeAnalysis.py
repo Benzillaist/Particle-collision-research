@@ -4,28 +4,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy
 
-count = 0
-with open('timeFile.txt') as fp:
-    for line in fp:
-        if line.strip():
-            count += 1
+startIndex = 0
+endIndex = 0
 
-print(count)
+def getDataList(fileName, string):
+    with open(fileName) as f:
+        fileContents = f.read()
+    startIndex = fileContents.find(string) + 2
+    startIndex = fileContents.find("{", startIndex) + 1
+    endIndex = fileContents.find("}", startIndex) - 2    
+    strList = fileContents[startIndex:endIndex].split(" ")
+    for i in range(0, len(strList)):
+        strList[i] = float(strList[i])
+    return strList
 
-times = np.genfromtxt("timeFile.txt", delimiter = " ", usemask = True, max_rows = 1)
-times = np.sort(times)
-timesMean = np.mean(times)
-timesStd = np.std(times)
-timesMax = np.max(times)
-timesMin = np.min(times)
+times = getDataList("timeFile.txt", "times")
+timesS = np.sort(times)
+timesMean = np.mean(timesS)
+timesStd = np.std(timesS)
+timesMax = np.max(timesS)
+timesMin = np.min(timesS)
 
-meanResiduals = times = np.genfromtxt("timeFile.txt", delimiter = " ", usemask = True, skip_header = 1, skip_footer = 0)
+meanResiduals = getDataList("timeFile.txt", "meanResiduals")
 
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
 
 revTimes = np.empty(shape = 0)
 
-for i in times:
+for i in timesS:
     if i <= (500):
         revTimes = np.append(revTimes, i)
 
@@ -55,17 +61,21 @@ plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
 plt.show()
 
-"""
+
 plt.plot(timeBinCenters,y,'-*')
-plt.plot(timeBinCenters,timeBestFit,'-')
+#plt.plot(timeBinCenters,timeBestFit,'-')
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Polygon of run time frequencies")
 plt.show()
 
-print(timeBinCenters)
-print(timeBestFit)
+print(meanResiduals)
+print(times)
 
+plt.scatter(meanResiduals, times)
+plt.show()
+
+"""
 plt.plot(timeBinCenters,timeBestFit,'-')
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")

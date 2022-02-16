@@ -52,7 +52,7 @@ vector<double> averageMassList (numParticles, 0);
 vector<double> finalMassList (numParticles, 0);
 vector<double> deltaTimeList;
 vector<double> tempTimeList;
-vector<double> meanResidualList;
+vector<double> stdDevList;
 double tempTime = 0;
 
 //METHODS
@@ -214,7 +214,7 @@ void I_processNextCollision() {
         particleList[minCollisionIndex].currentmass = totalMass;
 
         particleList.erase(particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
-        printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
+        //printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
     }
 
 }
@@ -330,9 +330,11 @@ void meanResiduals() {
         printf("%d: %lf\n", i, individualResidual);
     };
     for(int i = 0; i < particleListSize; i++) {
-        residualSum += tempResidualList[i];
+        residualSum += tempResidualList[i] * tempResidualList[i];
+        printf("\nTemp residual: %lf", tempResidualList[i]);
     }
-    meanResidualList.push_back(residualSum/tempResidualList.size());
+    printf("\nResidual sum: %lf\n", residualSum);
+    stdDevList.push_back(sqrt(residualSum/(double)tempResidualList.size()));
     printf("Lowest residual: %d: %lf\n", lowestIndex, lowestResidual);
 }
 
@@ -378,7 +380,7 @@ double E_averageMass() {
     for(int i = 0; i < particleListSize; i++) {
         sum += (double)particleList[i].currentmass;
     }
-    return sum/particleListSize;
+    return sum/(double)particleListSize;
 }
 
 //prints the average masses from all the runs
@@ -448,7 +450,7 @@ int main(void) {
             //general methods that are useful for analyzing data and debugging
             printf("\nInitial particle data: \n");
             printInitialParticleData();
-            printf("\nMean velocity: %lf", E_meanVelocity());
+            //printf("\nMean velocity: %lf", E_meanVelocity());
             meanResiduals();
             printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
             printf("Start of chain: %d\n", findFront());
@@ -475,7 +477,7 @@ int main(void) {
                 cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
                 //I_printCurrentParticleData();
-                printf("Mean velocity: %lf\n", I_meanVelocity());
+                //printf("Mean velocity: %lf\n", I_meanVelocity());
                 particleListSize--;
             }
 
@@ -496,13 +498,16 @@ int main(void) {
 
         ofstream timeFile ("timeFile.txt");
 
+        timeFile << "times{";
         for(int i = 0; i < deltaTimeList.size(); i ++){
             timeFile << deltaTimeList[i] << " " ;
         }
-        timeFile << "\n";
-        for(int i = 0; i < meanResidualList.size(); i ++) {
-            timeFile <<  meanResidualList[i] << " ";
+        //timeFile << "\n";
+        timeFile << "}stdDevs{";
+        for(int i = 0; i < stdDevList.size(); i ++) {
+            timeFile <<  stdDevList[i] << " ";
         }
+        timeFile << "}";
 
         ofstream massFile ("massFile.txt");
 
