@@ -29,6 +29,8 @@ stdDevs = getDataList("timeFile.txt", "stdDevs")
 
 meanVelocities = getDataList("timeFile.txt", "meanVelocities")
 
+leadVelocities = getDataList("timeFile.txt", "leadVelocities")
+
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
 
 revTimes = np.empty(shape = 0)
@@ -90,6 +92,23 @@ print(times)
 
 #scatterplot of stddev and run length
 plt.scatter(stdDevs, times)
+plt.xlabel("Standard deviation of velocities across runs")
+plt.ylabel("Run times")
+plt.title("Correlation between the standard deviation of velocities and run times")
+plt.show()
+
+#scatterplot of mean velocities and run length
+plt.scatter(meanVelocities, times)
+plt.xlabel("Mean of velocities across runs")
+plt.ylabel("Run times")
+plt.title("Correlation between mean velocities and run times")
+plt.show()
+
+#lead velocities vs mean velocities
+plt.scatter(meanVelocities, leadVelocities)
+plt.xlabel("Mean of velocities across runs")
+plt.ylabel("Lead velocities across runs")
+plt.title("Correlation between lead and mean velocities")
 plt.show()
 
 #best fit time line

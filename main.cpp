@@ -5,6 +5,7 @@
 #include <time.h>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -58,6 +59,7 @@ vector<double> deltaTimeList;
 vector<double> tempTimeList;
 vector<double> stdDevList;
 vector<double> meanVelocityList;
+vector<double> leadVelocityList;
 double tempTime = 0;
 
 //METHODS
@@ -391,12 +393,22 @@ double E_averageMass() {
 }
 
 //prints the average masses from all the runs
-void E_printAverageMasses() {
+void E_printRunEndData() {
     printf("\nAverage largest mass after each collision:");
     for(int i = 0; i < averageMassList.size(); i++) {
         printf("\n%d: %lf", i, averageMassList[i] / double(numberOfRuns));
         finalMassList[i] = averageMassList[i] / double(numberOfRuns);
     }
+
+    printf("\nLead particle ID: %d", particleList[0].leadParticle);
+    printf("\nLead particle velocity: %lf", particleList[0].leadParticleVelocity);
+
+    leadVelocityList.push_back(particleList[0].leadParticleVelocity);
+}
+
+//prints lead particle data
+void leadParticleVelocity() {
+
 }
 
 
@@ -472,7 +484,7 @@ int main(void) {
             //averageMassList.assign(10,0);
             tempTime = 0;
 
-            //printf("\nInitial particle data: \n");
+            printf("\nInitial particle data: \n");
             printInitialParticleData();
             printf("\nMean velocity: %lf", I_meanVelocity());
             meanResiduals();
@@ -490,10 +502,7 @@ int main(void) {
 
             deltaTimeList.push_back(tempTime);
             averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
-            E_printAverageMasses();
-
-            printf("\nLead particle ID: %d", particleList[0].leadParticle);
-            printf("\nLead particle velocity: %lf", particleList[0].leadParticleVelocity);
+            E_printRunEndData();
 
             particleListSize = numParticles;
         }
@@ -519,6 +528,10 @@ int main(void) {
         timeFile << "}meanVelocities{";
         for(int i = 0; i < meanVelocityList.size(); i ++) {
             timeFile <<  meanVelocityList[i] << " ";
+        }
+        timeFile << "}leadVelocities{";
+        for(int i = 0; i < leadVelocityList.size(); i ++) {
+            timeFile << leadVelocityList[i] << " ";
         }
         timeFile << "}";
 
