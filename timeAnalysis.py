@@ -25,6 +25,8 @@ timesStd = np.std(timesS)
 timesMax = np.max(timesS)
 timesMin = np.min(timesS)
 
+#logTimes = np.log(times)
+
 stdDevs = getDataList("timeFile.txt", "stdDevs")
 
 meanVelocities = getDataList("timeFile.txt", "meanVelocities")
@@ -53,6 +55,14 @@ print(f'Mean of revised times: {revTimesMean}')
 print(f'Min of revised times: {revTimesMin}')
 #print(times)
 
+removedCounter = 0
+
+for i in range(0, len(times)):
+    if(times[i] > (revTimesMean + revTimesStd)):
+        removedCounter += 1
+
+print(f'Removed Counter: {removedCounter}')
+
 #creation of histogram polygon
 time_bins = np.linspace(0, np.amax(revTimesMean + revTimesStd), 15)
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
@@ -68,7 +78,16 @@ plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
 plt.show()
-
+"""
+#log of run length histograms
+logTime_bins = np.arange(0, max(times))
+logTimes = np.histogram(times)
+plt.hist(logTimes, bins = logTime_bins)
+plt.xlabel("Run times")
+plt.ylabel("Frequency of run times")
+plt.title("Run time frequencies")
+plt.show()
+"""
 #Polygon of run length histogram
 plt.plot(timeBinCenters,y,'-*')
 #plt.plot(timeBinCenters,timeBestFit,'-')
