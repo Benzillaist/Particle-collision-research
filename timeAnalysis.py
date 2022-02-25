@@ -35,11 +35,19 @@ leadVelocities = getDataList("timeFile.txt", "leadVelocities")
 
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
 
-revTimes = np.empty(shape = 0)
+revTimes = times
 
-for i in timesS:
-    if i <= (500):
-        revTimes = np.append(revTimes, i)
+removedCounter = 0
+for i in range(0, len(times)):
+    if i >= len(times):
+        break
+    if not(times[i] <= (timesMean + timesStd)):
+        revTimes.pop(i)
+        stdDevs.pop(i)
+        meanVelocities.pop(i)
+        leadVelocities.pop(i)
+        removedCounter += 1
+        
 
 revTimesMean = np.mean(revTimes)
 revTimesStd = np.std(revTimes)
@@ -55,16 +63,10 @@ print(f'Mean of revised times: {revTimesMean}')
 print(f'Min of revised times: {revTimesMin}')
 #print(times)
 
-removedCounter = 0
-
-for i in range(0, len(times)):
-    if(times[i] > (revTimesMean + revTimesStd)):
-        removedCounter += 1
-
 print(f'Removed Counter: {removedCounter}')
 
 #creation of histogram polygon
-time_bins = np.linspace(0, np.amax(revTimesMean + revTimesStd), 15)
+time_bins = np.linspace(0, np.amax(revTimesMean + timesStd), 15)
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
 y,edges = np.histogram(revTimes, time_bins)
 
@@ -72,8 +74,11 @@ y,edges = np.histogram(revTimes, time_bins)
 timeBestFitCoeffs = np.polyfit(timeBinCenters, y, 2)
 timeBestFit = timeBestFitCoeffs[2] + timeBestFitCoeffs[1] * pow(timeBinCenters, 1) + timeBestFitCoeffs[0] * pow(timeBinCenters, 2)
 
+
+
 #Run length histograms
 plt.hist(revTimes, bins = time_bins)
+plt.yscale("log")
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
@@ -96,38 +101,85 @@ plt.ylabel("Frequency of run times")
 plt.title("Polygon of run time frequencies")
 plt.show()
 
+#creation of bins and binning of times for stddevs and mean velocities
+#print(f'stdDevs min: {min(stdDevs)} stdDevs max: {max(stdDevs)}')
+numBins = 30
+
+stdDevs_bins = np.linspace(min(stdDevs), max(stdDevs), numBins)
+stdDevsRange = np.empty([0])
+meanVelocities_bins = np.linspace(min(meanVelocities), max(meanVelocities), numBins)
+meanVelocitiesRange = np.empty([0])
+stdDevsTimes = np.empty([0])
+
+for i in range(0, len(stdDevs_bins) - 1):
+    sum = 0
+    count = 0
+    for j in range(0, len(stdDevs)):
+            if(stdDevs[j] >= stdDevs_bins[i] and stdDevs[j] < stdDevs_bins[i + 1]):
+                sum += times[j]
+                count += 1
+    if(count == 0):
+        stdDevsTimes = np.append(stdDevsTimes, 0)
+    else:
+        stdDevsTimes = np.append(stdDevsTimes, sum / count)
+
+for i in range(0, len(stdDevs_bins) - 1):
+    stdDevsRange = np.append(stdDevsRange, (stdDevs_bins[i] + stdDevs_bins[i + 1]) / 2)
+
+meanVelocitiesTimes = np.empty([0])
+for i in range(0, len(meanVelocities_bins) - 1):
+    sum = 0
+    count = 0
+    for j in range(0, len(meanVelocities)):
+            if(meanVelocities[j] >= meanVelocities_bins[i] and meanVelocities[j] < meanVelocities_bins[i + 1]):
+                sum += times[j]
+                count += 1
+    if(count == 0):
+        meanVelocitiesTimes = np.append(meanVelocitiesTimes, 0)
+    else:
+        meanVelocitiesTimes = np.append(meanVelocitiesTimes, sum / count)
+    
+for i in range(0, len(meanVelocities_bins) - 1):
+    meanVelocitiesRange = np.append(meanVelocitiesRange, (meanVelocities_bins[i] + meanVelocities_bins[i + 1]) / 2)
+    
+
 #3D stddev, mean velocity, and run length scatterplot
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 
-ax.scatter(stdDevs, meanVelocities, times)
+ax.scatter(stdDevs, meanVelocities, revTimes)
 ax.set_xlabel('Standard deviation of velocities')
 ax.set_ylabel('Mean of velocities')
 ax.set_zlabel('Z Label')
 plt.show()
 
-print(stdDevs)
-print(times)
-
 #scatterplot of stddev and run length
-plt.scatter(stdDevs, times)
+plt.scatter(stdDevs, revTimes)
 plt.xlabel("Standard deviation of velocities across runs")
 plt.ylabel("Run times")
 plt.title("Correlation between the standard deviation of velocities and run times")
 plt.show()
 
 #scatterplot of mean velocities and run length
-plt.scatter(meanVelocities, times)
+plt.scatter(meanVelocities, revTimes)
 plt.xlabel("Mean of velocities across runs")
 plt.ylabel("Run times")
 plt.title("Correlation between mean velocities and run times")
 plt.show()
 
-#lead velocities vs mean velocities
+#scatterplot of lead velocities vs mean velocities
 plt.scatter(meanVelocities, leadVelocities)
 plt.xlabel("Mean of velocities across runs")
 plt.ylabel("Lead velocities across runs")
 plt.title("Correlation between lead and mean velocities")
+plt.show()
+
+#plot of stddev and run length
+plt.plot(stdDevsRange, stdDevsTimes)
+plt.show()
+
+#plot of mean velocities vs run length
+plt.plot(meanVelocitiesRange, meanVelocitiesTimes)
 plt.show()
 
 #best fit time line

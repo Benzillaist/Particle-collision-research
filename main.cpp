@@ -11,7 +11,7 @@ using namespace std;
 
 //declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
-int numParticles = 10;
+int numParticles = 100;
 int particleListSize = numParticles;
 double minVelocity = 5;
 double maxVelocity = 10;
@@ -27,7 +27,7 @@ int iterationNumber = 5000000;
 bool elasticCollision = false;
 
 //number of runs that will be ran
-int numberOfRuns = 10000;
+int numberOfRuns = 100000;
 
 //Lists:
 
@@ -187,7 +187,7 @@ void I_processNextCollision() {
 
     for(int i = 0; i < particleListSize; i++)
     {
-        deltaVelocity = particleList[i].idealvelocity-particleList[nmod(i+1,particleListSize)].idealvelocity;
+        deltaVelocity = particleList[i].currentvelocity-particleList[nmod(i+1,particleListSize)].currentvelocity;
         deltaPosition = particleList[nmod(i+1,particleListSize)].currentposition-particleList[i].currentposition;
 
         if(deltaPosition<0) {
@@ -195,7 +195,8 @@ void I_processNextCollision() {
         }
 
         deltaTime = deltaPosition / deltaVelocity;
-
+        //printf("\nIndex: %d tempminCollisionTime: %lf", i, deltaTime);
+        //printf("\ndeltaVelocity: %lf deltaPosition: %lf", deltaVelocity, deltaPosition);
         if(deltaVelocity>0) { 
             if(((deltaTime)<minCollisionTime)||(minCollisionTime<0)) {
                 minCollisionIndex = i;
@@ -203,6 +204,8 @@ void I_processNextCollision() {
             }
         }
     }
+
+    //printf("\nminCollisionIndex: %d minCollisionTime: %lf", minCollisionIndex, minCollisionTime);
 
     for(int i = 0; i < particleListSize; i++) {
         particleList[i].currentposition = nmod(particleList[i].currentposition + (particleList[i].idealvelocity * minCollisionTime), trackLength);
@@ -218,8 +221,8 @@ void I_processNextCollision() {
         totalMass = p0Mass + p1Mass;
         particleList[minCollisionIndex].currentvelocity = ((particleList[minCollisionIndex].currentvelocity * (double)p0Mass) + (particleList[nmod(minCollisionIndex + 1, particleListSize)].currentvelocity * (double)p1Mass))/ (double)totalMass;
         particleList[minCollisionIndex].currentmass = totalMass;
-        printf("\nminCollisionIndex: %d", minCollisionIndex);
-        printf("\nleadVelocity %d: %lf leadVelocity %d: %lf", minCollisionIndex, particleList[minCollisionIndex].leadParticleVelocity, (int)nmod(minCollisionIndex + 1, particleListSize), particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity);
+        //printf("\nvelocity %d: %lf velocity %d: %lf", minCollisionIndex, particleList[minCollisionIndex].currentvelocity, (int)nmod(minCollisionIndex + 1, particleListSize), particleList[nmod(minCollisionIndex + 1, particleListSize)].currentvelocity);
+        //printf("\nleadVelocity %d: %lf leadVelocity %d: %lf", minCollisionIndex, particleList[minCollisionIndex].leadParticleVelocity, (int)nmod(minCollisionIndex + 1, particleListSize), particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity);
         particleList[minCollisionIndex].leadParticle = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticle;
         particleList[minCollisionIndex].leadParticleVelocity = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity;
         particleList.erase(particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
@@ -429,7 +432,7 @@ int main(void) {
         srand(time(0)+j);
 
         //prints the "seed", so each run can be re-ran at a later time
-        printf("Seed: %d\n",rand());
+        printf("\nSeed: %d\n",rand());
 
         //generates all the particles based off the previous random number generation
         loadParticles();
@@ -496,7 +499,7 @@ int main(void) {
                 //cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
                 //I_printCurrentParticleData();
-                printf("\nMean velocity: %lf", I_meanVelocity());
+                printf("\nMean velocity: %lf\n", I_meanVelocity());
                 particleListSize--;
             }
 
