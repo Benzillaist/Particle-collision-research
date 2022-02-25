@@ -11,7 +11,7 @@ using namespace std;
 
 //declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
-int numParticles = 100;
+int numParticles = 10;
 int particleListSize = numParticles;
 double minVelocity = 5;
 double maxVelocity = 10;
@@ -208,7 +208,6 @@ void I_processNextCollision() {
         particleList[i].currentposition = nmod(particleList[i].currentposition + (particleList[i].idealvelocity * minCollisionTime), trackLength);
     }
 
-
     if(minCollisionTime == -1) {
         printf("no elegible particle was removed\n");
     }
@@ -219,9 +218,10 @@ void I_processNextCollision() {
         totalMass = p0Mass + p1Mass;
         particleList[minCollisionIndex].currentvelocity = ((particleList[minCollisionIndex].currentvelocity * (double)p0Mass) + (particleList[nmod(minCollisionIndex + 1, particleListSize)].currentvelocity * (double)p1Mass))/ (double)totalMass;
         particleList[minCollisionIndex].currentmass = totalMass;
+        printf("\nminCollisionIndex: %d", minCollisionIndex);
+        printf("\nleadVelocity %d: %lf leadVelocity %d: %lf", minCollisionIndex, particleList[minCollisionIndex].leadParticleVelocity, (int)nmod(minCollisionIndex + 1, particleListSize), particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity);
         particleList[minCollisionIndex].leadParticle = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticle;
         particleList[minCollisionIndex].leadParticleVelocity = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity;
-
         particleList.erase(particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
         //printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
     }
@@ -496,7 +496,7 @@ int main(void) {
                 //cout << "\n" << particleListSize << "\n";
                 I_processNextCollision();
                 //I_printCurrentParticleData();
-                //printf("Mean velocity: %lf\n", I_meanVelocity());
+                printf("\nMean velocity: %lf", I_meanVelocity());
                 particleListSize--;
             }
 
