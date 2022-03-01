@@ -13,7 +13,7 @@ using namespace std;
 double std_acceleration = 1;
 int numParticles = 100;
 int particleListSize = numParticles;
-double minVelocity = 5;
+double minVelocity = 0;
 double maxVelocity = 10;
 double trackLength = 10;
 double tickRate = 10000;
