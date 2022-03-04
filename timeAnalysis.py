@@ -2,7 +2,7 @@ import os
 import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy
+from scipy.optimize import curve_fit
 
 startIndex = 0
 endIndex = 0
@@ -70,6 +70,8 @@ while i < len(revTimes):
     else:
         i += 1
 
+
+
 revTimesMean = np.mean(revTimes)
 revTimesStd = np.std(revTimes)
 revTimesMax = np.max(revTimes)
@@ -92,11 +94,13 @@ print(f'Removed Counter: {removedCounter}')
 time_bins = np.linspace(1, np.amax(revTimesMax), 30)
 print(time_bins[0])
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
-y,edges = np.histogram(revTimes, time_bins)
+timesHistPolygon,edges = np.histogram(revTimes, time_bins)
+timesPolygonMaxIndex = timesHistPolygon.tolist().index(max(timesHistPolygon.tolist()))
+timesMaxBinLow = time_bins[timesPolygonMaxIndex]
 
-#creation of best-fit line
-timeBestFitCoeffs = np.polyfit(timeBinCenters, y, 2)
-timeBestFit = timeBestFitCoeffs[2] + timeBestFitCoeffs[1] * pow(timeBinCenters, 1) + timeBestFitCoeffs[0] * pow(timeBinCenters, 2)
+fitTimes = timesHistPolygon[timesPolygonMaxIndex:]
+timeFitCenters = timeBinCenters[timesPolygonMaxIndex:]
+
 
 #creation of bins and binning of times for stddevs and mean velocities
 #print(f'stdDevs min: {min(stdDevs)} stdDevs max: {max(stdDevs)}')
@@ -107,6 +111,7 @@ stdDevsRange = np.empty([0])
 meanVelocities_bins = np.linspace(min(meanVelocities), max(meanVelocities), numBins)
 meanVelocitiesRange = np.empty([0])
 stdDevsTimes = np.empty([0])
+
 
 for i in range(0, len(stdDevs_bins) - 1):
     sum = 0
@@ -138,12 +143,41 @@ for i in range(0, len(meanVelocities_bins) - 1):
     
 for i in range(0, len(meanVelocities_bins) - 1):
     meanVelocitiesRange = np.append(meanVelocitiesRange, (meanVelocities_bins[i] + meanVelocities_bins[i + 1]) / 2)
-    
+
+meanVelocitiesLead = np.empty([0])
+for i in range(0, len(meanVelocities_bins) - 1):
+    sum = 0
+    count = 0
+    for j in range(0, len(meanVelocities)):
+            if(meanVelocities[j] >= meanVelocities_bins[i] and meanVelocities[j] < meanVelocities_bins[i + 1]):
+                sum += leadVelocities[j]
+                count += 1
+    if(count == 0):
+        meanVelocitiesLead = np.append(meanVelocitiesLead, 0)
+    else:
+        meanVelocitiesLead = np.append(meanVelocitiesLead, (sum / count) / meanVelocitiesRange[i])
+
+meanVelocitiesLeadBins = np.linspace(0, 1, 30)
+meanVelocitiesLeadDistro = np.empty([0])
+for i in range(0, len(meanVelocitiesLeadBins) - 1):
+    sum = 0
+    count = 0
+    for j in range(0, len(meanVelocities)):
+            if(leadVelocities[j] / meanVelocities[j] >= meanVelocitiesLeadBins[i] and leadVelocities[j] / meanVelocities[j] < meanVelocitiesLeadBins[i + 1]):
+                count += 1
+    if(count == 0):
+        meanVelocitiesLeadDistro = np.append(meanVelocitiesLeadDistro, 0)
+    else:
+        meanVelocitiesLeadDistro = np.append(meanVelocitiesLeadDistro, count)
+
+meanVelLeadDistroRange = np.empty(0)
+for i in range(0, len(meanVelocitiesLeadBins) - 1):
+    meanVelLeadDistroRange = np.append(meanVelLeadDistroRange, (meanVelocitiesLeadBins[i] + meanVelocitiesLeadBins[i + 1]) / 2)
 
 #finding best fit lines
 def chiSquared(expectedArr, actualArr):
     chiSquaredSum = 0
-    for k in range(y.tolist().index(max(y.tolist())) + 1, len(expectedArr)):
+    for k in range(timesHistPolygon.tolist().index(max(timesHistPolygon.tolist())) + 1, len(expectedArr)):
         ciNom = (actualArr[k] - expectedArr[k])**2
         ciDenom = expectedArr[k]
         chiSquaredSum += abs(ciNom / ciDenom)
@@ -151,59 +185,76 @@ def chiSquared(expectedArr, actualArr):
 
     return chiSquaredSum
 
-x = timeBinCenters
-runLengthBFL = 0
-iB = -1
-jB = -1
-kB = -1
-chiSquaredBest = -1
-for i in range(800,900, 10):
-    for j in range(-50, 1, 1):
-        for k in range(300, 351, 1):
-            runLengthBFL = i / np.power((timeBinCenters + j) / k, 2)
-            chiSquaredTemp = chiSquared(runLengthBFL, y)
-            if(chiSquaredBest < 0 or chiSquaredTemp < chiSquaredBest):
-                print(chiSquaredTemp)
-                chiSquaredBest = chiSquaredTemp
-                iB = i
-                jB = j
-                kB = k
-runLengthBFL = iB / np.power((timeBinCenters + jB) / kB, 2)
-print(runLengthBFL)
-print(f'iB: {iB} jB: {jB} kB: {kB}')
+#1/x^2 best fit for times
+def timeHistBFL(x, a, b, c):
+    return (a / ((x - b)**2)) + c
 
-print(f'arr max index: {y.tolist().index(max(y.tolist()))}')
-print(y)
+guesses = (1, 1, 1000)
+
+(a, b, c), cc = curve_fit(timeHistBFL, timeFitCenters, fitTimes, p0 = guesses)
+(ua, ub, uc) = np.sqrt(np.diag(cc))
+
+xTimesBFLPlot = np.linspace(timeFitCenters[0], timeFitCenters[len(timeFitCenters) - 1], 100)
+timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, b, c)
+
+print(f'Run best fit coefficients: a: {a:.3f}+-{ua:.3f} b: {b:.3f}+-{ub:.3f} c: {c:.3f}+-{uc:.3f}')
+
+#1/x^2 best fit for times
+def timeHistBFL(x, a, n):
+    return a / (x**2)**n
+
+guesses = (20000000, 1)
+weights = np.linspace(1, 10, len(timeFitCenters))
+
+(a, n), cc = curve_fit(timeHistBFL, timeFitCenters, fitTimes, p0 = guesses)
+(ua, un) = np.sqrt(np.diag(cc))
+
+xTimesBFLPlot = np.linspace(timeFitCenters[0], timeFitCenters[len(timeFitCenters) - 1], 100)
+timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, n)
+
+print(f'Run best fit coefficients: a: {a} n: {n}')
 
 #Run length histograms
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
 
 plt.hist(revTimes, bins = time_bins)
-plt.plot(timeBinCenters,y,'-*')
-plt.plot(x, runLengthBFL, "m")
+plt.plot(timeBinCenters, timesHistPolygon,'-*')
+plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
 plt.ylim([0, revTimesHistMax * 1.5])
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
 plt.show()
+"""
+#Run length fit histograms
+revTimesHist = np.histogram(revTimes, bins = time_bins)
+revTimesHistMax = max(revTimesHist[0])
 
+plt.hist(revTimes, bins = time_bins)
+plt.plot(timeBinCenters, timesHistPolygon,'-*')
+#plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+plt.ylim([0, revTimesHistMax * 1.5])
+plt.xlabel("Run times")
+plt.ylabel("Frequency of run times")
+plt.title("Run time frequencies")
+plt.show()
+"""
 #Run length histograms
 plt.hist(revTimes, bins = time_bins)
-plt.plot(x, runLengthBFL)
 f = 1000000 / np.power((time_bins - 10) / 100, 2)
-plt.plot(x, runLengthBFL, "m")
-plt.ylim([0, revTimesHistMax * 1.5])
+plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+#plt.ylim([0, revTimesHistMax * 1.5])
 plt.yscale("log")
-plt.xscale("log")
+#plt.xscale("log")
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
 plt.show()
 
 #Polygon of run length histogram
-plt.plot(timeBinCenters,y,'-*')
-plt.plot(x, runLengthBFL, "m")
+plt.plot(timeBinCenters, timesHistPolygon,'-*')
+#plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
 plt.ylim([0, revTimesHistMax * 1.5])
 #plt.plot(timeBinCenters,timeBestFit,'-')
 plt.xlabel("Run times")
@@ -254,6 +305,23 @@ plt.scatter(meanVelocities, leadVelocities)
 plt.xlabel("Mean of velocities across runs")
 plt.ylabel("Lead velocities across runs")
 plt.title("Correlation between lead and mean velocities")
+plt.show()
+
+#line showing average of lead velocities vs mean velocities with respect to the top curve
+ohPtFive = np.linspace(0.5, 0.5, 100)
+xOhPtFive = np.linspace(min(meanVelocitiesRange), max(meanVelocitiesRange), 100)
+plt.plot(meanVelocitiesRange, meanVelocitiesLead)
+plt.plot(xOhPtFive, ohPtFive)
+plt.xlabel("Mean of velocities across runs")
+plt.ylabel("Means of lead velocities over expected slope")
+plt.title("Correlation between lead and mean velocities")
+plt.show()
+
+#distrobution of lead velocities with respect to the mean
+plt.plot(meanVelLeadDistroRange, meanVelocitiesLeadDistro)
+plt.xlabel("Lead velocities / mean velocities")
+plt.ylabel("Count")
+plt.title("Distrobution of lead velocities over mean velocities")
 plt.show()
 
 #best fit time line
