@@ -11,11 +11,11 @@ using namespace std;
 
 //declaration of tweakable variables, keep tickrate very high and don't add too many particles or increase the radius by too much
 double std_acceleration = 1;
-int numParticles = 100;
+int numParticles = 10;
 int particleListSize = numParticles;
 double minVelocity = 0;
 double maxVelocity = 10;
-double trackLength = 10;
+double trackLength = 1;
 double tickRate = 10000;
 double particleRadius = 0.02;
 double tickFrequency = 1/tickRate;
@@ -204,13 +204,11 @@ void I_processNextCollision() {
             }
         }
     }
-
     //printf("\nminCollisionIndex: %d minCollisionTime: %lf", minCollisionIndex, minCollisionTime);
 
     for(int i = 0; i < particleListSize; i++) {
         particleList[i].currentposition = nmod(particleList[i].currentposition + (particleList[i].idealvelocity * minCollisionTime), trackLength);
     }
-
     if(minCollisionTime == -1) {
         printf("no elegible particle was removed\n");
     }
@@ -225,6 +223,9 @@ void I_processNextCollision() {
         //printf("\nleadVelocity %d: %lf leadVelocity %d: %lf", minCollisionIndex, particleList[minCollisionIndex].leadParticleVelocity, (int)nmod(minCollisionIndex + 1, particleListSize), particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity);
         particleList[minCollisionIndex].leadParticle = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticle;
         particleList[minCollisionIndex].leadParticleVelocity = particleList[nmod(minCollisionIndex + 1, particleListSize)].leadParticleVelocity;
+        //cout << "Test7" << endl;
+        //cout << "Size: " << particleList.size() << endl;
+        //cout << "Particle list size: " << particleListSize << endl;
         particleList.erase(particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
         //printf("Particle number %d was removed\n", particleList.begin() + nmod(minCollisionIndex + 1, particleListSize));
     }
@@ -255,7 +256,20 @@ void areParticlesMessedUp() {
     };
 };
 
-//DATA ANALYSIS METHODS
+int getFileLines(ifstream & myfile) {
+    string line;
+    int lineNum;
+    //printf(myfile.peek());
+    while(myfile.peek()!=EOF)
+	{
+			getline(myfile, line);
+			lineNum++;
+	}
+    return lineNum;
+}
+//============================================
+//-----------DATA ANALYSIS METHODS------------
+//============================================
 
 double radiusTolerance = 5;
 
@@ -333,12 +347,18 @@ void meanResiduals() {
     vector<double> tempResidualList;
     printf("\nMean residuals:\n");
     for(int i = 0; i < particleListSize; i++) {
+        for(int j = 0; j < particleList.size(); j++) {
+            cout << particleList[j].idealvelocity << endl;
+        }
+        cout << "Test9" << endl;
         tempResidualList.push_back(particleList[i].idealvelocity - meanvelocity);
         individualResidual = abs(particleList[i].idealvelocity - meanvelocity);
+        cout << "Test7" << endl;
         if (individualResidual < lowestResidual) {
             lowestResidual = individualResidual;
             lowestIndex = i;
         };
+        cout << "Test8" << endl;
         printf("%d: %lf\n", i, individualResidual);
     };
     for(int i = 0; i < particleListSize; i++) {
@@ -396,17 +416,20 @@ double E_averageMass() {
 }
 
 //prints the average masses from all the runs
+void E_RunEndMasses() {
+    for(int i = 0; i < averageMassList.size(); i++) {
+        finalMassList[i] = averageMassList[i] / double(numberOfRuns);
+    }
+}
+
 void E_printRunEndData() {
+    E_RunEndMasses();
     printf("\nAverage largest mass after each collision:");
     for(int i = 0; i < averageMassList.size(); i++) {
         printf("\n%d: %lf", i, averageMassList[i] / double(numberOfRuns));
-        finalMassList[i] = averageMassList[i] / double(numberOfRuns);
     }
-
     printf("\nLead particle ID: %d", particleList[0].leadParticle);
     printf("\nLead particle velocity: %lf", particleList[0].leadParticleVelocity);
-
-    leadVelocityList.push_back(particleList[0].leadParticleVelocity);
 }
 
 //prints lead particle data
@@ -414,138 +437,207 @@ void leadParticleVelocity() {
 
 }
 
+//runs a series of runs with specified parameters
+void runQueue(ifstream & myfile) {
+    string delimiter = " ";
+    string params;
+    getline(myfile, params);
 
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    std_acceleration = stod(params.substr(0, params.find(delimiter)));
+    printf("%lf\n", std_acceleration);
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
+    numParticles = stoi(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    minVelocity = stod(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    maxVelocity = stod(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    trackLength = stod(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    tickRate = stod(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
+    particleRadius = stod(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
+    iterationNumber = stoi(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
+    elasticCollision = stoi(params.substr(0, params.find(delimiter)));
+    params.erase(0, params.find(delimiter) + delimiter.length());
+    printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
+    numberOfRuns = stoi(params.substr(0, params.find(delimiter)));
+
+    particleListSize = numParticles;
+    tickFrequency = 1/tickRate;
+
+    particleList.clear();
+    averageMassList.clear();
+    finalMassList.clear();
+    deltaTimeList.clear();
+    tempTimeList.clear();
+    stdDevList.clear();
+    meanVelocityList.clear();
+    leadVelocityList.clear();
+        
+    tempTime = 0;
+}
+
+void runSimulation() {
+    
+}
 //Main method, runs code :D
 
 int main(void) {
-    int isFrontRun = 0;
-    int completedRuns = 0;
+    ifstream myfile;
+    int currLine = 0;
+    myfile.open("runQueue.txt");
+    string tempString;
+    //getline(myfile, tempString);
+    //printf("file line: %s\n", tempString.c_str());
+    while(myfile.peek()!=EOF) {
+        runQueue(myfile);
+        printf("%lf, %d, %lf, %lf, %lf, %lf, %lf, %d, %d, %d\n", std_acceleration, numParticles, minVelocity, maxVelocity, trackLength, tickRate, particleRadius, iterationNumber, elasticCollision, numberOfRuns);
 
-    //runs the number of previously specified simulations
-    for(int j = 0; j < numberOfRuns; j++) {
-        //printf("J: %d\n", j);
+        int isFrontRun = 0;
+        int completedRuns = 0;
+        
+        //runs the number of previously specified simulations
+        for(int j = 0; j < numberOfRuns; j++) {
+            //printf("J: %d\n", j);
 
-        //resets the particle list from any past runs
-        particleList.clear();
+            //resets the particle list from any past runs
+            particleList.clear();
 
-        //resets the random number generator "seed" so I don't get the same particles each time
-        srand(time(0)+j);
+            //resets the random number generator "seed" so I don't get the same particles each time
+            srand(time(0)+j);
 
-        //prints the "seed", so each run can be re-ran at a later time
-        printf("\nSeed: %d\n",rand());
+            //prints the "seed", so each run can be re-ran at a later time
+            //printf("\nSeed: %d\n",rand());
 
-        //generates all the particles based off the previous random number generation
-        loadParticles();
+            //generates all the particles based off the previous random number generation
+            loadParticles();
+            if(elasticCollision == true) {
 
-        if(elasticCollision == true) {
+                //prints initial particle data
+                E_printCurrentParticleData();
 
-            //prints initial particle data
-            E_printCurrentParticleData();
+                //runs for a maximum of cycles that was previously defined
+                for(int i = 0; i <= iterationNumber; i++) {
 
-            //runs for a maximum of cycles that was previously defined
-            for(int i = 0; i <= iterationNumber; i++) {
+                    //manages and collisions that would have happened for each particle
+                    E_didCollideV2();
 
-                //manages and collisions that would have happened for each particle
-                E_didCollideV2();
+                    //moves and accelerates each particle
+                    E_accelerateParticles();
 
-                //moves and accelerates each particle
-                E_accelerateParticles();
+                    //checks every 1000 ticks to see if the particles have all bunched up, if so, it prints the particle data and then leaves the loop
+                    if((i%1000) == 0) {
 
-                //checks every 1000 ticks to see if the particles have all bunched up, if so, it prints the particle data and then leaves the loop
-                if((i%1000) == 0) {
+                        if(fullHouse() == 1) {
+                            printf("\nIteration number: %d\n", i);
+                            E_printCurrentParticleData();
+                            completedRuns++;
+                            break;    
+                        }
+                    }
 
-                    if(fullHouse() == 1) {
+                    //since printing out each tick would clog the console and not be useful for debugging or analyzing, I only print out every 10000 ticks
+                    if((i%10000) == 0) {
                         printf("\nIteration number: %d\n", i);
                         E_printCurrentParticleData();
-                        completedRuns++;
-                        break;    
                     }
                 }
+            
+                //general methods that are useful for analyzing data and debugging
+                //printf("\nInitial particle data: \n");
+                //printInitialParticleData();
+                //printf("\nMean velocity: %lf", E_meanVelocity());
+                //meanResiduals();
+                //printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
+                //printf("Start of chain: %d\n", findFront());
 
-                //since printing out each tick would clog the console and not be useful for debugging or analyzing, I only print out every 10000 ticks
-                if((i%10000) == 0) {
-                    printf("\nIteration number: %d\n", i);
-                    E_printCurrentParticleData();
+                //if the particle with the lowest velocity is the one at the front of the chain, it adds one to the counter
+                if((findFront() == lowestInitVIndex()) && (fullHouse() == 1)) {
+                    isFrontRun++;
                 }
             }
-            
-            //general methods that are useful for analyzing data and debugging
-            printf("\nInitial particle data: \n");
-            printInitialParticleData();
-            //printf("\nMean velocity: %lf", E_meanVelocity());
-            meanResiduals();
-            printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
-            printf("Start of chain: %d\n", findFront());
+            else if(elasticCollision == false) {
+                averageMassList.assign(10,0);
+                tempTime = 0;
 
-            //if the particle with the lowest velocity is the one at the front of the chain, it adds one to the counter
-            if((findFront() == lowestInitVIndex()) && (fullHouse() == 1)) {
-                isFrontRun++;
-            }
-        }
-        else if(elasticCollision == false) {
+                //printf("\nInitial particle data: \n");
+                //printParticleData();
+                //printf("\nMean velocity: %lf", I_meanVelocity());
+                //meanResiduals();
+                
+                //printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
+                //printf("Start of chain: %d\n", findFront());
 
-            //averageMassList.assign(10,0);
-            tempTime = 0;
+                while(particleListSize>1) {
+                    averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
+                    //cout << "Test" << endl;
+                    I_processNextCollision();
+                    //printf("\nMean velocity: %lf\n", I_meanVelocity());
+                    particleListSize--;
+                }
 
-            printf("\nInitial particle data: \n");
-            printInitialParticleData();
-            printf("\nMean velocity: %lf", I_meanVelocity());
-            meanResiduals();
-            printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
-            printf("Start of chain: %d\n", findFront());
-
-            while(particleListSize>1) {
+                deltaTimeList.push_back(tempTime);
                 averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
-                //cout << "\n" << particleListSize << "\n";
-                I_processNextCollision();
-                //I_printCurrentParticleData();
-                printf("\nMean velocity: %lf\n", I_meanVelocity());
-                particleListSize--;
+                leadVelocityList.push_back(particleList[0].leadParticleVelocity);
+                E_RunEndMasses();
+                //E_printRunEndData();
+
+                particleListSize = numParticles;
             }
-
-            deltaTimeList.push_back(tempTime);
-            averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
-            E_printRunEndData();
-
-            particleListSize = numParticles;
         }
-    }
-
-    //prints the number of successful runs to the number of runs where the particle with the lowest velocity was at the front
-    double sum = 0;
-    if(elasticCollision == false) {
-        for(int i = 0; i < deltaTimeList.size(); i++) {
-            sum += deltaTimeList[i];
+        cout << "Test" << endl;
+        //prints the number of successful runs to the number of runs where the particle with the lowest velocity was at the front
+        double sum = 0;
+        if(elasticCollision == false) {
+            for(int i = 0; i < deltaTimeList.size(); i++) {
+                sum += deltaTimeList[i];
+            }
+            cout << "Test2" << endl;
+            string tfNOne = "timeFile" + to_string(numParticles);
+            cout << "Test2.25" << endl;
+            string tfName = "timeFile" + to_string(numParticles) + "L" + to_string((int)trackLength) + ".txt";
+            cout << "Test2.5" << endl;
+            //strcat(tfNOne.data(), tfName.data());
+            ofstream timeFile(tfName);
+            cout << "Test3" << endl;
+            timeFile << "timesN{";
+            for(int i = 0; i < deltaTimeList.size(); i ++){
+                timeFile << deltaTimeList[i] << " " ;
+            }
+            cout << "Test4" << endl;
+            timeFile << "}stdDevs{";
+            for(int i = 0; i < stdDevList.size(); i ++) {
+                timeFile <<  stdDevList[i] << " ";
+            }
+            timeFile << "}meanVelocities{";
+            for(int i = 0; i < meanVelocityList.size(); i ++) {
+                timeFile <<  meanVelocityList[i] << " ";
+            }
+            timeFile << "}leadVelocities{";
+            for(int i = 0; i < leadVelocityList.size(); i ++) {
+                timeFile << leadVelocityList[i] << " ";
+            }
+            timeFile << "}avgMasses{";
+            for(int i = 0; i < finalMassList.size(); i ++){
+                timeFile << finalMassList[i] << " " ;
+            }
+            timeFile << "}";
         }
 
-        ofstream timeFile ("timeFile.txt");
-
-        timeFile << "times{";
-        for(int i = 0; i < deltaTimeList.size(); i ++){
-            timeFile << deltaTimeList[i] << " " ;
+        if(elasticCollision == true) {
+            printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
         }
-        timeFile << "}stdDevs{";
-        for(int i = 0; i < stdDevList.size(); i ++) {
-            timeFile <<  stdDevList[i] << " ";
-        }
-        timeFile << "}meanVelocities{";
-        for(int i = 0; i < meanVelocityList.size(); i ++) {
-            timeFile <<  meanVelocityList[i] << " ";
-        }
-        timeFile << "}leadVelocities{";
-        for(int i = 0; i < leadVelocityList.size(); i ++) {
-            timeFile << leadVelocityList[i] << " ";
-        }
-        timeFile << "}";
-
-        ofstream massFile ("massFile.txt");
-
-        for(int i = 0; i < finalMassList.size(); i ++){
-            massFile << finalMassList[i] << " " ;
-        }
-    }
-
-    if(elasticCollision == true) {
-        printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
     }
 };

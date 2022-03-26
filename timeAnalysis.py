@@ -30,9 +30,7 @@ print(max(times))
 #logTimes = np.log(times)
 
 stdDevs = getDataList("timeFile.txt", "stdDevs")
-
 meanVelocities = getDataList("timeFile.txt", "meanVelocities")
-
 leadVelocities = getDataList("timeFile.txt", "leadVelocities")
 
 masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
@@ -174,7 +172,7 @@ meanVelLeadDistroRange = np.empty(0)
 for i in range(0, len(meanVelocitiesLeadBins) - 1):
     meanVelLeadDistroRange = np.append(meanVelLeadDistroRange, (meanVelocitiesLeadBins[i] + meanVelocitiesLeadBins[i + 1]) / 2)
 
-#finding best fit lines
+#chi squared
 def chiSquared(expectedArr, actualArr):
     chiSquaredSum = 0
     for k in range(timesHistPolygon.tolist().index(max(timesHistPolygon.tolist())) + 1, len(expectedArr)):
@@ -184,6 +182,23 @@ def chiSquared(expectedArr, actualArr):
     #print(f'chiSquaredSum: {chiSquaredSum} ciNom: {ciNom} ciDenom: {ciDenom}')
 
     return chiSquaredSum
+
+#==========================================
+#--------------BEST FIT LINES--------------
+#==========================================
+
+#Weibull equation fit for times
+def timeHistWeibullBFL(x, a, b, c, d, e):
+    return (a * d / b) * np.power(((x / e) - c) / b, a - 1) * np.exp(-np.power(((x / e) - c) / b, a))
+
+guesses = (2, 4.3, 6.4, 100000, 10)
+
+(a, b, c, d, e), cc = curve_fit(timeHistWeibullBFL, timeBinCenters, timesHistPolygon, p0 = guesses)
+(ua, ub, uc, ud, ue) = np.sqrt(np.diag(cc))
+xTimesWeibullBFLPlot = np.linspace(timeBinCenters[0], timeBinCenters[len(timeBinCenters) - 1], 100)
+timesWeibullBFLPlot = timeHistWeibullBFL(xTimesWeibullBFLPlot, a, b, c, d, e)
+
+print(f'Weibull times run best fit coefficients: a: {a}+-{ua} b: {b}+-{ub} c: {c}+-{uc} d: {d}+-{ud} e: {e}+-{ue}')
 
 #1/x^2 best fit for times
 def timeHistBFL(x, a, b, c):
@@ -217,7 +232,7 @@ print(f'Run best fit coefficients: a: {a} n: {n}')
 #Run length histograms
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
-
+plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
 plt.hist(revTimes, bins = time_bins)
 plt.plot(timeBinCenters, timesHistPolygon,'-*')
 plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
@@ -225,6 +240,9 @@ plt.ylim([0, revTimesHistMax * 1.5])
 plt.xlabel("Run times")
 plt.ylabel("Frequency of run times")
 plt.title("Run time frequencies")
+plt.show()
+
+plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
 plt.show()
 """
 #Run length fit histograms
