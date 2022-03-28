@@ -438,16 +438,14 @@ void leadParticleVelocity() {
 }
 
 //runs a series of runs with specified parameters
-void runQueue(ifstream & myfile) {
+void runQueue(string params) {
     string delimiter = " ";
-    string params;
-    getline(myfile, params);
 
     printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
     std_acceleration = stod(params.substr(0, params.find(delimiter)));
-    printf("%lf\n", std_acceleration);
     params.erase(0, params.find(delimiter) + delimiter.length());
     printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
+    /*
     numParticles = stoi(params.substr(0, params.find(delimiter)));
     params.erase(0, params.find(delimiter) + delimiter.length());
     printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
@@ -474,9 +472,11 @@ void runQueue(ifstream & myfile) {
     printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
     numberOfRuns = stoi(params.substr(0, params.find(delimiter)));
 
+    /*
     particleListSize = numParticles;
     tickFrequency = 1/tickRate;
 
+    /*
     particleList.clear();
     averageMassList.clear();
     finalMassList.clear();
@@ -485,7 +485,7 @@ void runQueue(ifstream & myfile) {
     stdDevList.clear();
     meanVelocityList.clear();
     leadVelocityList.clear();
-        
+    */  
     tempTime = 0;
 }
 
@@ -495,6 +495,7 @@ void runSimulation() {
 //Main method, runs code :D
 
 int main(void) {
+    
     ifstream myfile;
     int currLine = 0;
     myfile.open("runQueue.txt");
@@ -502,10 +503,13 @@ int main(void) {
     //getline(myfile, tempString);
     //printf("file line: %s\n", tempString.c_str());
     while(myfile.peek()!=EOF) {
-        runQueue(myfile);
-        printf("%lf, %d, %lf, %lf, %lf, %lf, %lf, %d, %d, %d\n", std_acceleration, numParticles, minVelocity, maxVelocity, trackLength, tickRate, particleRadius, iterationNumber, elasticCollision, numberOfRuns);
+        getline(myfile, tempString);
+        runQueue(tempString);
+        //printf("%lf, %d, %lf, %lf, %lf, %lf, %lf, %d, %d, %d\n", std_acceleration, numParticles, minVelocity, maxVelocity, trackLength, tickRate, particleRadius, iterationNumber, elasticCollision, numberOfRuns);
 
-        int isFrontRun = 0;
+    }
+
+    int isFrontRun = 0;
         int completedRuns = 0;
         
         //runs the number of previously specified simulations
@@ -523,6 +527,7 @@ int main(void) {
 
             //generates all the particles based off the previous random number generation
             loadParticles();
+            cout << "Test3" << endl;
             if(elasticCollision == true) {
 
                 //prints initial particle data
@@ -556,12 +561,12 @@ int main(void) {
                 }
             
                 //general methods that are useful for analyzing data and debugging
-                //printf("\nInitial particle data: \n");
-                //printInitialParticleData();
-                //printf("\nMean velocity: %lf", E_meanVelocity());
-                //meanResiduals();
-                //printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
-                //printf("Start of chain: %d\n", findFront());
+                printf("\nInitial particle data: \n");
+                printInitialParticleData();
+                printf("\nMean velocity: %lf", E_meanVelocity());
+                meanResiduals();
+                printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
+                printf("Start of chain: %d\n", findFront());
 
                 //if the particle with the lowest velocity is the one at the front of the chain, it adds one to the counter
                 if((findFront() == lowestInitVIndex()) && (fullHouse() == 1)) {
@@ -572,19 +577,19 @@ int main(void) {
                 averageMassList.assign(10,0);
                 tempTime = 0;
 
-                //printf("\nInitial particle data: \n");
+                printf("\nInitial particle data: \n");
                 //printParticleData();
-                //printf("\nMean velocity: %lf", I_meanVelocity());
-                //meanResiduals();
+                printf("\nMean velocity: %lf", I_meanVelocity());
+                meanResiduals();
                 
-                //printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
-                //printf("Start of chain: %d\n", findFront());
+                printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
+                printf("Start of chain: %d\n", findFront());
 
                 while(particleListSize>1) {
                     averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
                     //cout << "Test" << endl;
                     I_processNextCollision();
-                    //printf("\nMean velocity: %lf\n", I_meanVelocity());
+                    printf("\nMean velocity: %lf\n", I_meanVelocity());
                     particleListSize--;
                 }
 
@@ -592,7 +597,7 @@ int main(void) {
                 averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
                 leadVelocityList.push_back(particleList[0].leadParticleVelocity);
                 E_RunEndMasses();
-                //E_printRunEndData();
+                E_printRunEndData();
 
                 particleListSize = numParticles;
             }
@@ -604,13 +609,7 @@ int main(void) {
             for(int i = 0; i < deltaTimeList.size(); i++) {
                 sum += deltaTimeList[i];
             }
-            cout << "Test2" << endl;
-            string tfNOne = "timeFile" + to_string(numParticles);
-            cout << "Test2.25" << endl;
-            string tfName = "timeFile" + to_string(numParticles) + "L" + to_string((int)trackLength) + ".txt";
-            cout << "Test2.5" << endl;
-            //strcat(tfNOne.data(), tfName.data());
-            ofstream timeFile(tfName);
+            ofstream timeFile ("timeFile" + to_string(numParticles) + "L" + to_string((int)trackLength) + ".txt");
             cout << "Test3" << endl;
             timeFile << "timesN{";
             for(int i = 0; i < deltaTimeList.size(); i ++){
@@ -636,8 +635,9 @@ int main(void) {
             timeFile << "}";
         }
 
+        cout << "Test2" << endl;
+
         if(elasticCollision == true) {
             printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
         }
-    }
 };
