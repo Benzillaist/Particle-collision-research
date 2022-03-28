@@ -440,12 +440,11 @@ void leadParticleVelocity() {
 //runs a series of runs with specified parameters
 void runQueue(string params) {
     string delimiter = " ";
-
+    /*
     printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
     std_acceleration = stod(params.substr(0, params.find(delimiter)));
     params.erase(0, params.find(delimiter) + delimiter.length());
     printf("Adding: %d to paramArr\n", stoi(params.substr(0, params.find(delimiter))));
-    /*
     numParticles = stoi(params.substr(0, params.find(delimiter)));
     params.erase(0, params.find(delimiter) + delimiter.length());
     printf("Adding: %lf to paramArr\n", stod(params.substr(0, params.find(delimiter))));
@@ -580,7 +579,7 @@ int main(void) {
                 printf("\nInitial particle data: \n");
                 //printParticleData();
                 printf("\nMean velocity: %lf", I_meanVelocity());
-                meanResiduals();
+                //meanResiduals();
                 
                 printf("Lowest ideal velocity: %d: %lf\n", lowestInitVIndex(), particleList[lowestInitVIndex()].idealvelocity);
                 printf("Start of chain: %d\n", findFront());
@@ -597,7 +596,7 @@ int main(void) {
                 averageMassList[(int)(numParticles-particleListSize)] += E_largestMass();
                 leadVelocityList.push_back(particleList[0].leadParticleVelocity);
                 E_RunEndMasses();
-                E_printRunEndData();
+                //E_printRunEndData();
 
                 particleListSize = numParticles;
             }
@@ -640,4 +639,5 @@ int main(void) {
         if(elasticCollision == true) {
             printf("Total completed runs: %d, of which, %d had the particle with the lowest ideal velocity at the front\n", completedRuns, isFrontRun);
         }
+        cout << "end" << endl;
 };
