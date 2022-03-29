@@ -8,6 +8,7 @@ startIndex = 0
 endIndex = 0
 runDataList = [];
 
+#loading data into the code
 def getDataList(fileName, string):
     with open(fileName) as f:
         fileContents = f.read()
@@ -21,19 +22,67 @@ def getDataList(fileName, string):
 
 class runData:
     def __init__(self, fileName):
-        self.particleNum = fileName[fileName.find("P") + 1:fileName.find("L")]
-        self.trackLength = fileName[fileName.find("L") + 1:fileName.find(".")]
-        self.times = getDataList(fileName, "times")
-        self.stdDevs = getDataList(fileName, "stdDevs")
-        self.meanVelocities = getDataList(fileName, "meanVelocities")
-        self.leadVelocities = getDataList(fileName, "leadVelocities")
-        self.avgMasses = getDataList(fileName, "avgMasses")
-        self.individualCollisionTimes = getDataList(fileName, "individualCollisionTimes")
+        self.particleNum = np.array(fileName[fileName.find("P") + 1:fileName.find("L")])
+        self.particleNum = self.particleNum.astype(np.float64)
+        self.trackLength = np.array(fileName[fileName.find("L") + 1:fileName.find(".")])
+        self.trackLength = self.trackLength.astype(np.float64)
+        self.times = np.array(getDataList(fileName, "times"))
+        self.times = self.times.astype(np.float64)
+        self.stdDevs = np.array(getDataList(fileName, "stdDevs"))
+        self.stdDevs = self.stdDevs.astype(np.float64)
+        self.meanVelocities = np.array(getDataList(fileName, "meanVelocities"))
+        self.meanVelocities = self.meanVelocities.astype(np.float64)
+        self.leadVelocities = np.array(getDataList(fileName, "leadVelocities"))
+        self.leadVelocities = self.leadVelocities.astype(np.float64)
+        self.avgMasses = np.array(getDataList(fileName, "avgMasses"))
+        self.avgMasses = self.avgMasses.astype(np.float64)
+        self.individualCollisionTimes = np.array(getDataList(fileName, "individualCollisionTimes"))
+        self.individualCollisionTimes = self.individualCollisionTimes.astype(np.float64)
+
+def meanOfEachComponent(list):
+    copyList = np.empty(len(list))
+    for i in range(len(list)):
+        copyList[i] = np.mean(list[i])
+    return copyList
+
 
 for i in os.listdir("runFiles"):
     f = os.path.join("runFiles", i)
     if os.path.isfile(f):
         runDataList.append(runData(f))
+dataListLen = len(runDataList)
+
+particleNumL = np.empty(dataListLen, dtype=object)
+trackLengthL = np.empty(dataListLen, dtype=object)
+timesL = np.empty(dataListLen, dtype=object)
+stdDevsL = np.empty(dataListLen, dtype=object)
+meanVelocitiesL = np.empty(dataListLen, dtype=object)
+leadVelocitiesL = np.empty(dataListLen, dtype=object)
+massesL = np.empty(dataListLen, dtype=object)
+individualCollisionTimesL = np.empty(dataListLen, dtype=object)
+
+for i in range(len(runDataList)):
+    particleNumL[i] = runDataList[i].particleNum
+    trackLengthL[i] = runDataList[i].trackLength
+    timesL[i] = runDataList[i].times
+    stdDevsL[i] = runDataList[i].stdDevs
+    meanVelocitiesL[i] = runDataList[i].meanVelocities
+    leadVelocitiesL[i] = runDataList[i].leadVelocities
+    massesL[i] = runDataList[i].avgMasses
+    individualCollisionTimesL[i] = runDataList[i].individualCollisionTimes
+
+MparticleNumL = meanOfEachComponent(particleNumL)
+MtrackLengthL = meanOfEachComponent(trackLengthL)
+MtimesL = meanOfEachComponent(timesL)
+MstdDevsL = meanOfEachComponent(stdDevsL)
+MmeanVelocitiesL = meanOfEachComponent(meanVelocitiesL)
+MleadVelocitiesL = meanOfEachComponent(leadVelocitiesL)
+MmassesL = meanOfEachComponent(massesL)
+MindividualCollisionTimesL = meanOfEachComponent(individualCollisionTimesL)
+
+print(MparticleNumL)
+print(MtrackLengthL)
+print(MtimesL)
 
 times = runDataList[8].times
 stdDevs = runDataList[8].stdDevs
@@ -41,6 +90,7 @@ meanVelocities = runDataList[8].meanVelocities
 leadVelocities = runDataList[8].leadVelocities
 masses = runDataList[8].avgMasses
 individualCollisionTimes = runDataList[8].individualCollisionTimes
+logInvCollisionTimes = np.log(np.array(individualCollisionTimes))  
 print(masses[-1])
 timesS = np.sort(times)
 timesMean = np.mean(timesS)
@@ -54,16 +104,18 @@ print(max(times))
 
 revTimes = times
 
+#cutting down on extraneous data
 removedCounter = 0
 i = 0
+
 while i < len(revTimes):
     if i >= len(times):
         break
     if (times[i] >= ((timesMean + timesStd) / 10)):
-        revTimes.pop(i)
-        stdDevs.pop(i)
-        meanVelocities.pop(i)
-        leadVelocities.pop(i)
+        revTimes = np.delete(revTimes, i)
+        stdDevs = np.delete(stdDevs, i)
+        meanVelocities = np.delete(meanVelocities, i)
+        leadVelocities = np.delete(leadVelocities, i)
         removedCounter += 1
     else:
         i += 1
@@ -77,26 +129,66 @@ print(f'Standard deviation of revised times: {revTimesStd}')
 print(f'Mean of revised times: {revTimesMean}')
 print(f'Min of revised times: {revTimesMin}')
 print(f'Max of revised times: {revTimesMax}')
-
+"""
 i = 0
 while i < len(revTimes):
     if i >= len(revTimes):
         break
     if (revTimes[i] >= ((revTimesMean + revTimesStd) / 10)):
-        revTimes.pop(i)
-        stdDevs.pop(i)
-        meanVelocities.pop(i)
-        leadVelocities.pop(i)
+        revTimes = np.delete(revTimes, i)
+        stdDevs = np.delete(stdDevs, i)
+        meanVelocities = np.delete(meanVelocities, i)
+        leadVelocities = np.delete(leadVelocities, i)
         removedCounter += 1
     else:
         i += 1
-
-
-
+print(removedCounter)
+print(revTimes)
 revTimesMean = np.mean(revTimes)
 revTimesStd = np.std(revTimes)
 revTimesMax = np.max(revTimes)
 revTimesMin = np.min(revTimes)
+"""
+"""
+for j in range(len(runDataList)):
+
+
+    i = 0
+    while i < len(runDataList[j].times):
+        if i >= len(runDataList[j].times):
+            break
+        if (runDataList[j].times[i] >= ((timesMean + timesStd) / 10)):
+            revTimes = np.delete(revTimes, i)
+            stdDevs = np.delete(stdDevs, i)
+            meanVelocities = np.delete(meanVelocities, i)
+            leadVelocities = np.delete(leadVelocities, i)
+            removedCounter += 1
+        else:
+            i += 1
+
+    revTimesMax = np.max(revTimes)
+    revTimesMean = np.mean(revTimes)
+    revTimesStd = np.std(revTimes)
+    revTimesMin = np.min(revTimes)
+
+    print(f'Standard deviation of revised times: {revTimesStd}')
+    print(f'Mean of revised times: {revTimesMean}')
+    print(f'Min of revised times: {revTimesMin}')
+    print(f'Max of revised times: {revTimesMax}')
+
+    i = 0
+    while i < len(revTimes):
+        if i >= len(revTimes):
+            break
+        if (revTimes[i] >= ((revTimesMean + revTimesStd) / 10)):
+            revTimes = np.delete(revTimes, i)
+            stdDevs = np.delete(stdDevs, i)
+            meanVelocities = np.delete(meanVelocities, i)
+            leadVelocities = np.delete(leadVelocities, i)
+            removedCounter += 1
+        else:
+            i += 1
+"""
 
 print(f'Standard deviation of times: {timesStd}')
 print(f'Mean of times: {timesMean}')
@@ -110,6 +202,7 @@ print(f'Max of revised times: {revTimesMax}')
 #print(times)
 
 print(f'Removed Counter: {removedCounter}')
+
 
 #creation of histogram polygon
 time_bins = np.linspace(1, revTimesMax, 30)
@@ -132,6 +225,8 @@ stdDevsRange = np.empty([0])
 meanVelocities_bins = np.linspace(min(meanVelocities), max(meanVelocities), numBins)
 meanVelocitiesRange = np.empty([0])
 stdDevsTimes = np.empty([0])
+
+individualCollisionX = np.arange(0, len(individualCollisionTimes), 1)
 
 
 for i in range(0, len(stdDevs_bins) - 1):
@@ -253,6 +348,20 @@ timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, n)
 
 print(f'Run best fit coefficients: a: {a} n: {n}')
 
+#time per collision best fit
+def timeCollisionBFL(x, a, b, c):
+    return (a * np.exp(x / b)) + c
+
+guesses = (1e-10, 1, 1)
+
+(a, b, c), cc = curve_fit(timeCollisionBFL, individualCollisionX, individualCollisionTimes, p0 = guesses)
+(ua, ub, u) = np.sqrt(np.diag(cc))
+
+xinvCollisionBFLPlot = np.linspace(individualCollisionX[0], individualCollisionX[len(individualCollisionX) - 1], 100)
+invCollisionBFLPlot = timeCollisionBFL(xinvCollisionBFLPlot, a, b, c)
+
+print(f'Individual collision times coefficients: a: {a} b: {b} c: {c}')
+
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
 
@@ -270,7 +379,6 @@ def runLengthHistogram():
 
     plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
     plt.show()
-
 
 def fitRunLengthHist():
     revTimesHist = np.histogram(revTimes, bins = time_bins)
@@ -304,6 +412,12 @@ def runLengthHistPolygon():
     plt.xlabel("Run times")
     plt.ylabel("Frequency of run times")
     plt.title("Polygon of run time frequencies")
+    plt.show()
+
+def scatterPLRL():
+    fig = plt.figure()
+    ax = fig.add_subplot(projection = '3d')
+    ax.scatter(MparticleNumL, MtrackLengthL, MtimesL)
     plt.show()
 
 #3D stddev, mean velocity, and run length scatterplot
@@ -386,8 +500,17 @@ def plotMassPerCollision():
 
 #time between each collision
 def plotTimePerCollision():
-    individualCollisionX = np.arange(0, len(individualCollisionTimes), 1)
     plt.plot(individualCollisionX, individualCollisionTimes)
+    plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
+    #plt.plot(xinvCollisionBFLPlot, timeCollisionBFL(xinvCollisionBFLPlot, 2.14834340373572e-12, 1.8605148946198493, 2.5667979668948684, 0))
+    plt.xlabel("Collision number")
+    plt.ylabel("Average time between each collision")
+    plt.title("Average time between each collision per collision number")
+    plt.show()
+
+    plt.plot(individualCollisionX, individualCollisionTimes)
+    plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
+    #plt.plot(xinvCollisionBFLPlot, timeCollisionBFL(xinvCollisionBFLPlot, 2.14834340373572e-12, 1.8605148946198493, 3.5667979668948684, 0))
     plt.yscale("log")
     plt.xlabel("Collision number")
     plt.ylabel("Average time between each collision")
@@ -395,5 +518,6 @@ def plotTimePerCollision():
     plt.show()
 
 plotTimePerCollision()
+scatterPLRL()
 
 #print(times)
