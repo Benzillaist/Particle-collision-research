@@ -6,19 +6,42 @@ from scipy.optimize import curve_fit
 
 startIndex = 0
 endIndex = 0
+runDataList = [];
 
 def getDataList(fileName, string):
     with open(fileName) as f:
         fileContents = f.read()
     startIndex = fileContents.find(string) + 2
     startIndex = fileContents.find("{", startIndex) + 1
-    endIndex = fileContents.find("}", startIndex) - 2    
+    endIndex = fileContents.find("}", startIndex) - 1
     strList = fileContents[startIndex:endIndex].split(" ")
     for i in range(0, len(strList)):
         strList[i] = float(strList[i])
     return strList
 
-times = getDataList("timeFile.txt", "times")
+class runData:
+    def __init__(self, fileName):
+        self.particleNum = fileName[fileName.find("P") + 1:fileName.find("L")]
+        self.trackLength = fileName[fileName.find("L") + 1:fileName.find(".")]
+        self.times = getDataList(fileName, "times")
+        self.stdDevs = getDataList(fileName, "stdDevs")
+        self.meanVelocities = getDataList(fileName, "meanVelocities")
+        self.leadVelocities = getDataList(fileName, "leadVelocities")
+        self.avgMasses = getDataList(fileName, "avgMasses")
+        self.individualCollisionTimes = getDataList(fileName, "individualCollisionTimes")
+
+for i in os.listdir("runFiles"):
+    f = os.path.join("runFiles", i)
+    if os.path.isfile(f):
+        runDataList.append(runData(f))
+
+times = runDataList[8].times
+stdDevs = runDataList[8].stdDevs
+meanVelocities = runDataList[8].meanVelocities
+leadVelocities = runDataList[8].leadVelocities
+masses = runDataList[8].avgMasses
+individualCollisionTimes = runDataList[8].individualCollisionTimes
+print(masses[-1])
 timesS = np.sort(times)
 timesMean = np.mean(timesS)
 timesStd = np.std(timesS)
@@ -29,12 +52,6 @@ print(max(times))
 
 #logTimes = np.log(times)
 
-stdDevs = getDataList("timeFile.txt", "stdDevs")
-meanVelocities = getDataList("timeFile.txt", "meanVelocities")
-leadVelocities = getDataList("timeFile.txt", "leadVelocities")
-
-masses = np.genfromtxt("massFile.txt", delimiter = " ", usemask = True)
-
 revTimes = times
 
 removedCounter = 0
@@ -42,7 +59,7 @@ i = 0
 while i < len(revTimes):
     if i >= len(times):
         break
-    if (times[i] >= (timesMean + timesStd)):
+    if (times[i] >= ((timesMean + timesStd) / 10)):
         revTimes.pop(i)
         stdDevs.pop(i)
         meanVelocities.pop(i)
@@ -54,12 +71,18 @@ while i < len(revTimes):
 revTimesMax = np.max(revTimes)
 revTimesMean = np.mean(revTimes)
 revTimesStd = np.std(revTimes)
+revTimesMin = np.min(revTimes)
+
+print(f'Standard deviation of revised times: {revTimesStd}')
+print(f'Mean of revised times: {revTimesMean}')
+print(f'Min of revised times: {revTimesMin}')
+print(f'Max of revised times: {revTimesMax}')
 
 i = 0
 while i < len(revTimes):
     if i >= len(revTimes):
         break
-    if (revTimes[i] >= (revTimesMean + revTimesStd)):
+    if (revTimes[i] >= ((revTimesMean + revTimesStd) / 10)):
         revTimes.pop(i)
         stdDevs.pop(i)
         meanVelocities.pop(i)
@@ -89,7 +112,7 @@ print(f'Max of revised times: {revTimesMax}')
 print(f'Removed Counter: {removedCounter}')
 
 #creation of histogram polygon
-time_bins = np.linspace(1, np.amax(revTimesMax), 30)
+time_bins = np.linspace(1, revTimesMax, 30)
 print(time_bins[0])
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
 timesHistPolygon,edges = np.histogram(revTimes, time_bins)
@@ -189,12 +212,13 @@ def chiSquared(expectedArr, actualArr):
 
 #Weibull equation fit for times
 def timeHistWeibullBFL(x, a, b, c, d, e):
-    return (a * d / b) * np.power(((x / e) - c) / b, a - 1) * np.exp(-np.power(((x / e) - c) / b, a))
+    return (a * d / b) * np.power((x - e) / (c * b), a - 1) * np.exp(-np.power((x - e) / (c * b), a))
 
-guesses = (2, 4.3, 6.4, 100000, 10)
+guesses = (1.5, 0.05, 460, 1600, 8)
 
 (a, b, c, d, e), cc = curve_fit(timeHistWeibullBFL, timeBinCenters, timesHistPolygon, p0 = guesses)
 (ua, ub, uc, ud, ue) = np.sqrt(np.diag(cc))
+(a, b, c, d, e) = (1.5, 0.05, 460, 1600, 8)
 xTimesWeibullBFLPlot = np.linspace(timeBinCenters[0], timeBinCenters[len(timeBinCenters) - 1], 100)
 timesWeibullBFLPlot = timeHistWeibullBFL(xTimesWeibullBFLPlot, a, b, c, d, e)
 
@@ -229,136 +253,147 @@ timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, n)
 
 print(f'Run best fit coefficients: a: {a} n: {n}')
 
-#Run length histograms
-revTimesHist = np.histogram(revTimes, bins = time_bins)
-revTimesHistMax = max(revTimesHist[0])
-plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
-plt.hist(revTimes, bins = time_bins)
-plt.plot(timeBinCenters, timesHistPolygon,'-*')
-plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
-plt.ylim([0, revTimesHistMax * 1.5])
-plt.xlabel("Run times")
-plt.ylabel("Frequency of run times")
-plt.title("Run time frequencies")
-plt.show()
-
-plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
-plt.show()
-"""
-#Run length fit histograms
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
 
-plt.hist(revTimes, bins = time_bins)
-plt.plot(timeBinCenters, timesHistPolygon,'-*')
-#plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
-plt.ylim([0, revTimesHistMax * 1.5])
-plt.xlabel("Run times")
-plt.ylabel("Frequency of run times")
-plt.title("Run time frequencies")
-plt.show()
-"""
 #Run length histograms
-plt.hist(revTimes, bins = time_bins)
-f = 1000000 / np.power((time_bins - 10) / 100, 2)
-plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
-#plt.ylim([0, revTimesHistMax * 1.5])
-plt.yscale("log")
-#plt.xscale("log")
-plt.xlabel("Run times")
-plt.ylabel("Frequency of run times")
-plt.title("Run time frequencies")
-plt.show()
+def runLengthHistogram():
+    plt.hist(revTimes, bins = time_bins)
+    plt.plot(timeBinCenters, timesHistPolygon,'-*')
+    plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+    plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
+    plt.ylim([0, revTimesHistMax * 1.5])
+    plt.xlabel("Run times")
+    plt.ylabel("Frequency of run times")
+    plt.title("Run time frequencies")
+    plt.show()
 
-#Polygon of run length histogram
-plt.plot(timeBinCenters, timesHistPolygon,'-*')
-#plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
-plt.ylim([0, revTimesHistMax * 1.5])
-#plt.plot(timeBinCenters,timeBestFit,'-')
-plt.xlabel("Run times")
-plt.ylabel("Frequency of run times")
-plt.title("Polygon of run time frequencies")
-plt.show()
+    plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
+    plt.show()
+
+
+def fitRunLengthHist():
+    revTimesHist = np.histogram(revTimes, bins = time_bins)
+    revTimesHistMax = max(revTimesHist[0])
+    plt.hist(revTimes, bins = time_bins)
+    plt.plot(timeBinCenters, timesHistPolygon,'-*')
+    plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+    plt.ylim([0, revTimesHistMax * 1.5])
+    plt.xlabel("Run times")
+    plt.ylabel("Frequency of run times")
+    plt.title("Run time frequencies")
+    plt.show()
+
+def runLengthHistLog():
+    plt.hist(revTimes, bins = time_bins)
+    f = 1000000 / np.power((time_bins - 10) / 100, 2)
+    plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+    #plt.ylim([0, revTimesHistMax * 1.5])
+    plt.yscale("log")
+    #plt.xscale("log")
+    plt.xlabel("Run times")
+    plt.ylabel("Frequency of run times")
+    plt.title("Run time frequencies")
+    plt.show()
+
+def runLengthHistPolygon():
+    plt.plot(timeBinCenters, timesHistPolygon,'-*')
+    #plt.plot(xTimesBFLPlot, timesBFLPlot, "m")
+    plt.ylim([0, revTimesHistMax * 1.5])
+    #plt.plot(timeBinCenters,timeBestFit,'-')
+    plt.xlabel("Run times")
+    plt.ylabel("Frequency of run times")
+    plt.title("Polygon of run time frequencies")
+    plt.show()
 
 #3D stddev, mean velocity, and run length scatterplot
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-
-ax.scatter(stdDevs, meanVelocities, revTimes)
-ax.set_xlabel('Standard deviation of velocities')
-ax.set_ylabel('Mean of velocities')
-ax.set_zlabel('Z Label')
-plt.show()
+def scatterStdMVRL():
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter(stdDevs, meanVelocities, revTimes)
+    ax.set_xlabel('Standard deviation of velocities')
+    ax.set_ylabel('Mean of velocities')
+    ax.set_zlabel('Z Label')
+    plt.show()
 
 #scatterplot of stddev and run length
-plt.scatter(stdDevs, revTimes)
-plt.xlabel("Standard deviation of velocities across runs")
-plt.ylabel("Run times")
-plt.title("Correlation between the standard deviation of velocities and run times")
-plt.show()
+def scatterStdRL():
+    plt.scatter(stdDevs, revTimes)
+    plt.xlabel("Standard deviation of velocities across runs")
+    plt.ylabel("Run times")
+    plt.title("Correlation between the standard deviation of velocities and run times")
+    plt.show()
 
 #plot of stddev and run length
-plt.plot(stdDevsRange, stdDevsTimes)
-plt.xlabel("Standard deviation of velocities across runs")
-plt.ylabel("Run times")
-plt.title("Correlation between the standard deviation of velocities and run times")
-plt.show()
+def plotStdRL():
+    plt.plot(stdDevsRange, stdDevsTimes)
+    plt.xlabel("Standard deviation of velocities across runs")
+    plt.ylabel("Run times")
+    plt.title("Correlation between the standard deviation of velocities and run times")
+    plt.show()
 
 #scatterplot of mean velocities and run length
-plt.scatter(meanVelocities, revTimes)
-plt.xlabel("Mean of velocities across runs")
-plt.ylabel("Run times")
-plt.title("Correlation between mean velocities and run times")
-plt.show()
+def scatterMVRL():
+    plt.scatter(meanVelocities, revTimes)
+    plt.xlabel("Mean of velocities across runs")
+    plt.ylabel("Run times")
+    plt.title("Correlation between mean velocities and run times")
+    plt.show()
 
 #plot of mean velocities vs run length
-plt.plot(meanVelocitiesRange, meanVelocitiesTimes)
-plt.xlabel("Mean of velocities across runs")
-plt.ylabel("Run times")
-plt.title("Correlation between mean velocities and run times")
-plt.show()
+def plotMVRL():
+    plt.plot(meanVelocitiesRange, meanVelocitiesTimes)
+    plt.xlabel("Mean of velocities across runs")
+    plt.ylabel("Run times")
+    plt.title("Correlation between mean velocities and run times")
+    plt.show()
 
 #scatterplot of lead velocities vs mean velocities
-plt.scatter(meanVelocities, leadVelocities)
-plt.xlabel("Mean of velocities across runs")
-plt.ylabel("Lead velocities across runs")
-plt.title("Correlation between lead and mean velocities")
-plt.show()
+def scatterLVMV():
+    plt.scatter(meanVelocities, leadVelocities)
+    plt.xlabel("Mean of velocities across runs")
+    plt.ylabel("Lead velocities across runs")
+    plt.title("Correlation between lead and mean velocities")
+    plt.show()
 
 #line showing average of lead velocities vs mean velocities with respect to the top curve
-ohPtFive = np.linspace(0.5, 0.5, 100)
-xOhPtFive = np.linspace(min(meanVelocitiesRange), max(meanVelocitiesRange), 100)
-plt.plot(meanVelocitiesRange, meanVelocitiesLead)
-plt.plot(xOhPtFive, ohPtFive)
-plt.xlabel("Mean of velocities across runs")
-plt.ylabel("Means of lead velocities over expected slope")
-plt.title("Correlation between lead and mean velocities")
-plt.show()
+def plotNormalLVMV():
+    ohPtFive = np.linspace(0.5, 0.5, 100)
+    xOhPtFive = np.linspace(min(meanVelocitiesRange), max(meanVelocitiesRange), 100)
+    plt.plot(meanVelocitiesRange, meanVelocitiesLead)
+    plt.plot(xOhPtFive, ohPtFive)
+    plt.xlabel("Mean of velocities across runs")
+    plt.ylabel("Means of lead velocities over expected slope")
+    plt.title("Correlation between lead and mean velocities")
+    plt.show()
 
 #distrobution of lead velocities with respect to the mean
-plt.plot(meanVelLeadDistroRange, meanVelocitiesLeadDistro)
-plt.xlabel("Lead velocities / mean velocities")
-plt.ylabel("Count")
-plt.title("Distrobution of lead velocities over mean velocities")
-plt.show()
+def plotNormalLV():
+    plt.plot(meanVelLeadDistroRange, meanVelocitiesLeadDistro)
+    plt.xlabel("Lead velocities / mean velocities")
+    plt.ylabel("Count")
+    plt.title("Distribution of lead velocities over mean velocities")
+    plt.show()
 
-#best fit time line
-"""
-plt.plot(timeBinCenters,timeBestFit,'-')
-plt.xlabel("Run times")
-plt.ylabel("Frequency of run times")
-plt.title("Best fit of run time frequencies")
-plt.show()
-"""
+def plotMassPerCollision():
+    mass_X = np.arange(0, len(masses), 1)
+    #average mass per collision
+    plt.plot(mass_X, masses)
+    plt.xlabel("Collision number")
+    plt.ylabel("Average mass")
+    plt.title("Average mass at given collision number")
+    plt.show()
 
-mass_X = np.arange(0, masses.size, 1)
+#time between each collision
+def plotTimePerCollision():
+    individualCollisionX = np.arange(0, len(individualCollisionTimes), 1)
+    plt.plot(individualCollisionX, individualCollisionTimes)
+    plt.yscale("log")
+    plt.xlabel("Collision number")
+    plt.ylabel("Average time between each collision")
+    plt.title("Average time between each collision per collision number")
+    plt.show()
 
-#average mass per collition
-plt.plot(mass_X, masses)
-plt.xlabel("Collision number")
-plt.ylabel("Average mass")
-plt.title("Average mass at given collision number")
-plt.show()
-
+plotTimePerCollision()
 
 #print(times)
