@@ -7,6 +7,8 @@ from scipy.optimize import curve_fit
 startIndex = 0
 endIndex = 0
 runDataList = [];
+removedCounter = 0
+timeCutoff = 1
 
 #loading data into the code
 def getDataList(fileName, string):
@@ -26,31 +28,97 @@ class runData:
         self.particleNum = self.particleNum.astype(np.float64)
         self.trackLength = np.array(fileName[fileName.find("L") + 1:fileName.find(".")])
         self.trackLength = self.trackLength.astype(np.float64)
-        self.times = np.array(getDataList(fileName, "times"))
+        self.times = np.array(getDataList(fileName, "times").sort())
         self.times = self.times.astype(np.float64)
-        self.stdDevs = np.array(getDataList(fileName, "stdDevs"))
+        self.stdDevs = np.array(getDataList(fileName, "stdDevs").sort())
         self.stdDevs = self.stdDevs.astype(np.float64)
-        self.meanVelocities = np.array(getDataList(fileName, "meanVelocities"))
+        self.meanVelocities = np.array(getDataList(fileName, "meanVelocities").sort())
         self.meanVelocities = self.meanVelocities.astype(np.float64)
-        self.leadVelocities = np.array(getDataList(fileName, "leadVelocities"))
+        self.leadVelocities = np.array(getDataList(fileName, "leadVelocities").sort())
         self.leadVelocities = self.leadVelocities.astype(np.float64)
-        self.avgMasses = np.array(getDataList(fileName, "avgMasses"))
+        self.avgMasses = np.array(getDataList(fileName, "avgMasses").sort())
         self.avgMasses = self.avgMasses.astype(np.float64)
-        self.individualCollisionTimes = np.array(getDataList(fileName, "individualCollisionTimes"))
+        self.individualCollisionTimes = np.array(getDataList(fileName, "individualCollisionTimes").sort())
         self.individualCollisionTimes = self.individualCollisionTimes.astype(np.float64)
-
-def meanOfEachComponent(list):
-    copyList = np.empty(len(list))
-    for i in range(len(list)):
-        copyList[i] = np.mean(list[i])
-    return copyList
-
 
 for i in os.listdir("runFiles"):
     f = os.path.join("runFiles", i)
     if os.path.isfile(f):
         runDataList.append(runData(f))
 dataListLen = len(runDataList)
+
+
+for j in range(len(runDataList)):
+    i = 0
+
+    revTimesMax = np.max(runDataList[j].times)
+    revTimesMean = np.mean(runDataList[j].times)
+    revTimesStd = np.std(runDataList[j].times)
+    revTimesMin = np.min(runDataList[j].times)
+
+    while i < len(runDataList[j].times):
+        if i >= len(runDataList[j].times):
+            break
+        if (runDataList[j].times[i] >= ((revTimesMean + revTimesStd) / timeCutoff)):
+            runDataList[j].times = np.delete(runDataList[j].times, i)
+            runDataList[j].stdDevs = np.delete(runDataList[j].stdDevs, i)
+            runDataList[j].meanVelocities = np.delete(runDataList[j].meanVelocities, i)
+            runDataList[j].leadVelocities = np.delete(runDataList[j].leadVelocities, i)
+            #removedCounter += 1
+        else:
+            i += 1
+
+    revTimesMax = np.max(runDataList[j].times)
+    revTimesMean = np.mean(runDataList[j].times)
+    revTimesStd = np.std(runDataList[j].times)
+    revTimesMin = np.min(runDataList[j].times)
+
+    print(f'P: {runDataList[j].particleNum} L: {runDataList[j].trackLength} stdDev: {revTimesStd}')
+    print(f'Mean of revised1 times: {revTimesMean}')
+    print(f'Min of revised1 times: {revTimesMin}')
+    print(f'Max of revised1 times: {revTimesMax}')
+
+    #print(f'len reduction limit: {(revTimesMean + revTimesStd) / 10}')
+
+    if(revTimesMean * timeCutoff <= revTimesStd):
+        i = 0
+        while i < len(runDataList[j].times):
+            if i >= len(runDataList[j].times):
+                break
+            if (runDataList[j].times[i] >= ((revTimesMean + revTimesStd) / timeCutoff)):
+                runDataList[j].times = np.delete(runDataList[j].times, i)
+                runDataList[j].stdDevs = np.delete(runDataList[j].stdDevs, i)
+                runDataList[j].meanVelocities = np.delete(runDataList[j].meanVelocities, i)
+                runDataList[j].leadVelocities = np.delete(runDataList[j].leadVelocities, i)
+                removedCounter += 1
+            else:
+                i += 1
+
+    revTimesMax = np.max(runDataList[j].times)
+    revTimesMean = np.mean(runDataList[j].times)
+    revTimesStd = np.std(runDataList[j].times)
+    revTimesMin = np.min(runDataList[j].times)
+
+    print(f'P: {runDataList[j].particleNum} L: {runDataList[j].trackLength} stdDev: {revTimesStd}')
+    print(f'Mean of revised2 times: {revTimesMean}')
+    print(f'Min of revised2 times: {revTimesMin}')
+    print(f'Max of revised2 times: {revTimesMax}')
+
+    print(f'len revTimes: {len(runDataList[j].times)}')
+
+print(f'Standard deviation of revised times: {revTimesStd}')
+print(f'Mean of revised times: {revTimesMean}')
+print(f'Min of revised times: {revTimesMin}')
+print(f'Max of revised times: {revTimesMax}')
+#print(times)
+
+print(f'Removed Counter: {removedCounter}')
+
+def meanOfEachComponent(list):
+    copyList = np.empty(len(list))
+    for i in range(len(list)):
+        copyList[i] = np.mean(list[i])
+    return copyList
 
 particleNumL = np.empty(dataListLen, dtype=object)
 trackLengthL = np.empty(dataListLen, dtype=object)
@@ -104,109 +172,10 @@ print(max(times))
 
 revTimes = times
 
-#cutting down on extraneous data
-removedCounter = 0
-i = 0
-
-while i < len(revTimes):
-    if i >= len(times):
-        break
-    if (times[i] >= ((timesMean + timesStd) / 10)):
-        revTimes = np.delete(revTimes, i)
-        stdDevs = np.delete(stdDevs, i)
-        meanVelocities = np.delete(meanVelocities, i)
-        leadVelocities = np.delete(leadVelocities, i)
-        removedCounter += 1
-    else:
-        i += 1
-
-revTimesMax = np.max(revTimes)
-revTimesMean = np.mean(revTimes)
-revTimesStd = np.std(revTimes)
-revTimesMin = np.min(revTimes)
-
-print(f'Standard deviation of revised times: {revTimesStd}')
-print(f'Mean of revised times: {revTimesMean}')
-print(f'Min of revised times: {revTimesMin}')
-print(f'Max of revised times: {revTimesMax}')
-"""
-i = 0
-while i < len(revTimes):
-    if i >= len(revTimes):
-        break
-    if (revTimes[i] >= ((revTimesMean + revTimesStd) / 10)):
-        revTimes = np.delete(revTimes, i)
-        stdDevs = np.delete(stdDevs, i)
-        meanVelocities = np.delete(meanVelocities, i)
-        leadVelocities = np.delete(leadVelocities, i)
-        removedCounter += 1
-    else:
-        i += 1
-print(removedCounter)
-print(revTimes)
-revTimesMean = np.mean(revTimes)
-revTimesStd = np.std(revTimes)
-revTimesMax = np.max(revTimes)
-revTimesMin = np.min(revTimes)
-"""
-"""
-for j in range(len(runDataList)):
-
-
-    i = 0
-    while i < len(runDataList[j].times):
-        if i >= len(runDataList[j].times):
-            break
-        if (runDataList[j].times[i] >= ((timesMean + timesStd) / 10)):
-            revTimes = np.delete(revTimes, i)
-            stdDevs = np.delete(stdDevs, i)
-            meanVelocities = np.delete(meanVelocities, i)
-            leadVelocities = np.delete(leadVelocities, i)
-            removedCounter += 1
-        else:
-            i += 1
-
-    revTimesMax = np.max(revTimes)
-    revTimesMean = np.mean(revTimes)
-    revTimesStd = np.std(revTimes)
-    revTimesMin = np.min(revTimes)
-
-    print(f'Standard deviation of revised times: {revTimesStd}')
-    print(f'Mean of revised times: {revTimesMean}')
-    print(f'Min of revised times: {revTimesMin}')
-    print(f'Max of revised times: {revTimesMax}')
-
-    i = 0
-    while i < len(revTimes):
-        if i >= len(revTimes):
-            break
-        if (revTimes[i] >= ((revTimesMean + revTimesStd) / 10)):
-            revTimes = np.delete(revTimes, i)
-            stdDevs = np.delete(stdDevs, i)
-            meanVelocities = np.delete(meanVelocities, i)
-            leadVelocities = np.delete(leadVelocities, i)
-            removedCounter += 1
-        else:
-            i += 1
-"""
-
-print(f'Standard deviation of times: {timesStd}')
-print(f'Mean of times: {timesMean}')
-print(f'Min of times: {timesMin}')
-print(f'Max of times: {timesMax}')
-
-print(f'Standard deviation of revised times: {revTimesStd}')
-print(f'Mean of revised times: {revTimesMean}')
-print(f'Min of revised times: {revTimesMin}')
-print(f'Max of revised times: {revTimesMax}')
-#print(times)
-
-print(f'Removed Counter: {removedCounter}')
-
 
 #creation of histogram polygon
 time_bins = np.linspace(1, revTimesMax, 30)
-print(time_bins[0])
+print(f'time_bins: {time_bins}')
 timeBinCenters = 0.5*(time_bins[1:]+ time_bins[:-1])
 timesHistPolygon,edges = np.histogram(revTimes, time_bins)
 timesPolygonMaxIndex = timesHistPolygon.tolist().index(max(timesHistPolygon.tolist()))
@@ -307,7 +276,7 @@ def chiSquared(expectedArr, actualArr):
 
 #Weibull equation fit for times
 def timeHistWeibullBFL(x, a, b, c, d, e):
-    return (a * d / b) * np.power((x - e) / (c * b), a - 1) * np.exp(-np.power((x - e) / (c * b), a))
+    return (a * d / b)
 
 guesses = (1.5, 0.05, 460, 1600, 8)
 
@@ -325,6 +294,9 @@ def timeHistBFL(x, a, b, c):
 
 guesses = (1, 1, 1000)
 
+print(f'timeFitCenters: {timeFitCenters}')
+print(f'fitTimes: {fitTimes}')
+
 (a, b, c), cc = curve_fit(timeHistBFL, timeFitCenters, fitTimes, p0 = guesses)
 (ua, ub, uc) = np.sqrt(np.diag(cc))
 
@@ -334,17 +306,19 @@ timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, b, c)
 print(f'Run best fit coefficients: a: {a:.3f}+-{ua:.3f} b: {b:.3f}+-{ub:.3f} c: {c:.3f}+-{uc:.3f}')
 
 #1/x^2 best fit for times
-def timeHistBFL(x, a, n):
+def timeHistBFL2(x, a, n):
     return a / (x**2)**n
 
 guesses = (20000000, 1)
 weights = np.linspace(1, 10, len(timeFitCenters))
 
-(a, n), cc = curve_fit(timeHistBFL, timeFitCenters, fitTimes, p0 = guesses)
+print(timeFitCenters)
+
+(a, n), cc = curve_fit(timeHistBFL2, timeFitCenters, fitTimes, p0 = guesses)
 (ua, un) = np.sqrt(np.diag(cc))
 
 xTimesBFLPlot = np.linspace(timeFitCenters[0], timeFitCenters[len(timeFitCenters) - 1], 100)
-timesBFLPlot = timeHistBFL(xTimesBFLPlot, a, n)
+timesBFLPlot = timeHistBFL2(xTimesBFLPlot, a, n)
 
 print(f'Run best fit coefficients: a: {a} n: {n}')
 
@@ -352,7 +326,7 @@ print(f'Run best fit coefficients: a: {a} n: {n}')
 def timeCollisionBFL(x, a, b, c):
     return (a * np.exp(x / b)) + c
 
-guesses = (1e-10, 1, 1)
+guesses = (1e-6, 1, 1)
 
 (a, b, c), cc = curve_fit(timeCollisionBFL, individualCollisionX, individualCollisionTimes, p0 = guesses)
 (ua, ub, u) = np.sqrt(np.diag(cc))
@@ -361,6 +335,14 @@ xinvCollisionBFLPlot = np.linspace(individualCollisionX[0], individualCollisionX
 invCollisionBFLPlot = timeCollisionBFL(xinvCollisionBFLPlot, a, b, c)
 
 print(f'Individual collision times coefficients: a: {a} b: {b} c: {c}')
+
+def linFitHelper(x, a, b):
+    return (a * x) + b
+
+def bestFitLinearPlot(x, y):
+    guesses = (1, 1)
+    (a, b), cc = curve_fit(linFitHelper, x, y, p0 = guesses)
+    return a, b
 
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
@@ -414,10 +396,26 @@ def runLengthHistPolygon():
     plt.title("Polygon of run time frequencies")
     plt.show()
 
+#3D scatterplot showing the track length, number of particles, and average run lengths
 def scatterPLRL():
     fig = plt.figure()
     ax = fig.add_subplot(projection = '3d')
+    print(f'MtimesL: {MtimesL}')
     ax.scatter(MparticleNumL, MtrackLengthL, MtimesL)
+    ax.set_xlabel("Number of particles")
+    ax.set_ylabel("Track length")
+    ax.set_zlabel("Average run time")
+    plt.show()
+
+#scatterplot showing the number of particles vs mean run lengths
+def scatterPRL():
+    a, b = bestFitLinearPlot(MparticleNumL, MtimesL)
+    print(f'Best fit line for number of particles vs mean run times: T_avg = ({a}*x) + {b}')
+    scatterPRLPlot = linFitHelper(MparticleNumL, a, b)
+    plt.scatter(MparticleNumL, MtimesL)
+    plt.plot(MparticleNumL, scatterPRLPlot)
+    plt.xlabel("Number of particles")
+    plt.ylabel("Mean time to end of run")
     plt.show()
 
 #3D stddev, mean velocity, and run length scatterplot
@@ -501,7 +499,7 @@ def plotMassPerCollision():
 #time between each collision
 def plotTimePerCollision():
     plt.plot(individualCollisionX, individualCollisionTimes)
-    plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
+    #plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
     #plt.plot(xinvCollisionBFLPlot, timeCollisionBFL(xinvCollisionBFLPlot, 2.14834340373572e-12, 1.8605148946198493, 2.5667979668948684, 0))
     plt.xlabel("Collision number")
     plt.ylabel("Average time between each collision")
@@ -509,7 +507,7 @@ def plotTimePerCollision():
     plt.show()
 
     plt.plot(individualCollisionX, individualCollisionTimes)
-    plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
+    #plt.plot(xinvCollisionBFLPlot, invCollisionBFLPlot)
     #plt.plot(xinvCollisionBFLPlot, timeCollisionBFL(xinvCollisionBFLPlot, 2.14834340373572e-12, 1.8605148946198493, 3.5667979668948684, 0))
     plt.yscale("log")
     plt.xlabel("Collision number")
@@ -517,7 +515,10 @@ def plotTimePerCollision():
     plt.title("Average time between each collision per collision number")
     plt.show()
 
+runLengthHistogram()
+runLengthHistLog()
 plotTimePerCollision()
 scatterPLRL()
+scatterPRL()
 
 #print(times)

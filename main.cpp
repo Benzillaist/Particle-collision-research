@@ -208,7 +208,7 @@ void I_processNextCollision() {
         particleList[i].currentposition = nmod(particleList[i].currentposition + (particleList[i].idealvelocity * minCollisionTime), trackLength);
     }
     if(minCollisionTime == -1) {
-        printf("no elegible particle was removed\n");
+        printf("no elegible particle was removed, particleNum: %d\n", numParticles);
     }
     else {
         tempTime += minCollisionTime;
