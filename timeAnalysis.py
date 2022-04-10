@@ -9,6 +9,7 @@ endIndex = 0
 runDataList = [];
 removedCounter = 0
 timeCutoff = 1
+runGraphIndex = 8
 
 #loading data into the code
 def getDataList(fileName, string):
@@ -63,7 +64,7 @@ for j in range(len(runDataList)):
     IQR = Q3 - Q1
 
     while i < len(runDataList[j].times):
-        if((runDataList[j].times[i] < (Q1 - (3 * IQR))) or (runDataList[j].times[i] > (Q3 + (3 * IQR)))):
+        if((runDataList[j].times[i] < (Q1 - (10 * IQR))) or (runDataList[j].times[i] > (Q3 + (10 * IQR)))):
             runDataList[j].times = np.delete(runDataList[j].times, i)
             runDataList[j].stdDevs = np.delete(runDataList[j].stdDevs, i)
             runDataList[j].meanVelocities = np.delete(runDataList[j].meanVelocities, i)
@@ -77,6 +78,7 @@ for j in range(len(runDataList)):
     revTimesMin = np.min(runDataList[j].times)
 
     print(f'P: {runDataList[j].particleNum} L: {runDataList[j].trackLength} stdDev: {revTimesStd}')
+    print(f'Q1: {Q1} Q3: {Q3} IQR: {IQR}')
     print(f'Mean of revised1 times: {revTimesMean}')
     print(f'Min of revised1 times: {revTimesMin}')
     print(f'Max of revised1 times: {revTimesMax}')
@@ -116,12 +118,12 @@ MleadVelocitiesL = meanOfEachComponent(leadVelocitiesL)
 MmassesL = meanOfEachComponent(massesL)
 MindividualCollisionTimesL = meanOfEachComponent(individualCollisionTimesL)
 
-times = runDataList[8].times
-stdDevs = runDataList[8].stdDevs
-meanVelocities = runDataList[8].meanVelocities
-leadVelocities = runDataList[8].leadVelocities
-masses = runDataList[8].avgMasses
-individualCollisionTimes = runDataList[8].individualCollisionTimes
+times = runDataList[runGraphIndex].times
+stdDevs = runDataList[runGraphIndex].stdDevs
+meanVelocities = runDataList[runGraphIndex].meanVelocities
+leadVelocities = runDataList[runGraphIndex].leadVelocities
+masses = runDataList[runGraphIndex].avgMasses
+individualCollisionTimes = runDataList[runGraphIndex].individualCollisionTimes
 logInvCollisionTimes = np.log(np.array(individualCollisionTimes))  
 timesS = np.sort(times)
 timesMean = np.mean(timesS)
@@ -314,13 +316,13 @@ def bestFitLogPlot(x, y):
     (a, b, c), cc = curve_fit(logFitHelper, x, y, p0 = guesses)
     return a, b, c
 
-def powerFitHelper(x, a, b, c):
-    return (a * (x**b)) + c
+def powerFitHelper(x, a, b):
+    return (a * (x**b))
 
 def bestFitPowerPlot(x, y):
-    guesses = (1, 1, 1)
-    (a, b, c), cc = curve_fit(powerFitHelper, x, y, p0 = guesses)
-    return a, b, c
+    guesses = (1, 1)
+    (a, b), cc = curve_fit(powerFitHelper, x, y, p0 = guesses)
+    return a, b
 
 revTimesHist = np.histogram(revTimes, bins = time_bins)
 revTimesHistMax = max(revTimesHist[0])
@@ -337,8 +339,8 @@ def runLengthHistogram():
     plt.title("Run time frequencies")
     plt.show()
 
-    plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
-    plt.show()
+    #plt.plot(xTimesWeibullBFLPlot, timesWeibullBFLPlot, color = 'green')
+    #plt.show()
 
 def fitRunLengthHist():
     revTimesHist = np.histogram(revTimes, bins = time_bins)
@@ -387,17 +389,11 @@ def scatterPLRL():
 
 #scatterplot showing the number of particles vs mean run lengths
 def scatterPRL():
-    #linear fit
-    a, b = bestFitLinearPlot(MparticleNumL, MtimesL)
-    print(f'Best linear fit line for number of particles vs mean run times: T_avg = ({a}*x) + {b}')
-    scatterLinPRLPlot = linFitHelper(MparticleNumL, a, b)
-    plt.plot(MparticleNumL, scatterLinPRLPlot)
-
     #power fit
-    a, b, c = bestFitPowerPlot(MparticleNumL, MtimesL)
-    print(f'Best power fit line for number of particles vs mean run times: T_avg = ({a}*x^{b}) + {c}')
+    a, b = bestFitPowerPlot(MparticleNumL, MtimesL)
+    print(f'Best power fit line for number of particles vs mean run times: T_avg = ({a}*x^{b})')
     MPNL = MparticleNumL
-    scatterPowerPRLPlot = powerFitHelper(np.sort(MPNL), a, b, c)
+    scatterPowerPRLPlot = powerFitHelper(np.sort(MPNL), a, b)
     plt.plot(np.sort(MPNL), scatterPowerPRLPlot)
 
     #actual data
@@ -503,8 +499,14 @@ def plotTimePerCollision():
     plt.title("Average time between each collision per collision number")
     plt.show()
 
+runLengthHistogram()
+runLengthHistLog()
 plotTimePerCollision()
 scatterPLRL()
 scatterPRL()
+
+scatterStdMVRL()
+plotMVRL()
+scatterLVMV()
 
 #print(times)
