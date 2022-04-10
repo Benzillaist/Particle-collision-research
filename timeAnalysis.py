@@ -289,11 +289,11 @@ guesses = (1e-17, 4.4, 0)
 print(f'individualCollisionX: {individualCollisionX}')
 print(f'individualCollisionTimes: {individualCollisionTimes}')
 
-(a, b, c), cc = curve_fit(timeCollisionBFL, individualCollisionX, individualCollisionTimes, p0 = guesses)
-(ua, ub, u) = np.sqrt(np.diag(cc))
+#(a, b, c), cc = curve_fit(timeCollisionBFL, individualCollisionX, individualCollisionTimes, p0 = guesses)
+#(ua, ub, u) = np.sqrt(np.diag(cc))
 
-xinvCollisionBFLPlot = np.linspace(individualCollisionX[0], individualCollisionX[len(individualCollisionX) - 1], 100)
-invCollisionBFLPlot = timeCollisionBFL(xinvCollisionBFLPlot, a, b, c)
+#xinvCollisionBFLPlot = np.linspace(individualCollisionX[0], individualCollisionX[len(individualCollisionX) - 1], 100)
+#invCollisionBFLPlot = timeCollisionBFL(xinvCollisionBFLPlot, a, b, c)
 
 print(f'Individual collision times coefficients: a: {a} b: {b} c: {c}')
 
