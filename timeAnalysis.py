@@ -3,13 +3,15 @@ import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+import copy
 
 startIndex = 0
 endIndex = 0
 runDataList = [];
 removedCounter = 0
 timeCutoff = 1
-runGraphIndex = 8
+selectedRun = 9
+IQRMod = 10
 
 #loading data into the code
 def getDataList(fileName, string):
@@ -31,22 +33,25 @@ class runData:
         self.trackLength = self.trackLength.astype(np.float64)
         self.times = np.array(getDataList(fileName, "times"))
         self.times = self.times.astype(np.float64)
-        self.times = np.sort(self.times)
         self.stdDevs = np.array(getDataList(fileName, "stdDevs"))
         self.stdDevs = self.stdDevs.astype(np.float64)
-        self.stdDevs = np.sort(self.stdDevs)
+        #self.stdDevs = np.sort(self.stdDevs)
         self.meanVelocities = np.array(getDataList(fileName, "meanVelocities"))
         self.meanVelocities = self.meanVelocities.astype(np.float64)
-        self.meanVelocities = np.sort(self.meanVelocities)
+        #self.meanVelocities = np.sort(self.meanVelocities)
         self.leadVelocities = np.array(getDataList(fileName, "leadVelocities"))
         self.leadVelocities = self.leadVelocities.astype(np.float64)
-        self.leadVelocities = np.sort(self.leadVelocities)
+        #self.leadVelocities = np.sort(self.leadVelocities)
         self.avgMasses = np.array(getDataList(fileName, "avgMasses"))
         self.avgMasses = self.avgMasses.astype(np.float64)
-        self.avgMasses = np.sort(self.avgMasses)
+        #self.avgMasses = np.sort(self.avgMasses)
         self.individualCollisionTimes = np.array(getDataList(fileName, "individualCollisionTimes"))
         self.individualCollisionTimes = self.individualCollisionTimes.astype(np.float64)
-        self.individualCollisionTimes = np.sort(self.individualCollisionTimes)
+        #self.individualCollisionTimes = np.sort(self.individualCollisionTimes)
+        self.stdDevs = np.array([x for _,x in sorted(zip(self.times.tolist(), self.stdDevs.tolist()))])
+        self.mealVelocities = np.array([x for _,x in sorted(zip(self.times.tolist(), self.meanVelocities.tolist()))])
+        self.leadVelocities = np.array([x for _,x in sorted(zip(self.times.tolist(), self.leadVelocities.tolist()))])
+        self.times = np.sort(self.times)
 
 #loads files into program
 for i in os.listdir("runFiles"):
@@ -55,6 +60,12 @@ for i in os.listdir("runFiles"):
         runDataList.append(runData(f))
 dataListLen = len(runDataList)
 
+IQRModArr = np.arange(10, 0, -3)
+print(f'IQRMod: {IQRModArr}')
+IQRLimitedRuns = np.empty([len(IQRModArr), len(runDataList)], dtype=object)
+for i in range(len(IQRModArr)):
+    IQRLimitedRuns[i, :] = copy.deepcopy(runDataList)
+
 
 #eliminates statistically extreme values
 for j in range(len(runDataList)):
@@ -62,27 +73,58 @@ for j in range(len(runDataList)):
     Q1 = runDataList[j].times[int(len(runDataList[j].times) / 4)]
     Q3 = runDataList[j].times[int(len(runDataList[j].times) * (3 / 4))]
     IQR = Q3 - Q1
-
-    while i < len(runDataList[j].times):
-        if((runDataList[j].times[i] < (Q1 - (10 * IQR))) or (runDataList[j].times[i] > (Q3 + (10 * IQR)))):
-            runDataList[j].times = np.delete(runDataList[j].times, i)
-            runDataList[j].stdDevs = np.delete(runDataList[j].stdDevs, i)
-            runDataList[j].meanVelocities = np.delete(runDataList[j].meanVelocities, i)
-            runDataList[j].leadVelocities = np.delete(runDataList[j].leadVelocities, i)
-        else:
-            i += 1
+    
+    boolMask = (runDataList[j].times <= (Q3 + (IQRMod * IQR)))
+    runDataList[j].times = runDataList[j].times[boolMask]
+    runDataList[j].stdDevs = runDataList[j].stdDevs[boolMask]
+    runDataList[j].meanVelocities = runDataList[j].meanVelocities[boolMask]
+    runDataList[j].leadVelocities = runDataList[j].leadVelocities[boolMask]
 
     revTimesMax = np.max(runDataList[j].times)
     revTimesMean = np.mean(runDataList[j].times)
     revTimesStd = np.std(runDataList[j].times)
     revTimesMin = np.min(runDataList[j].times)
 
-    print(f'P: {runDataList[j].particleNum} L: {runDataList[j].trackLength} stdDev: {revTimesStd}')
-    print(f'Q1: {Q1} Q3: {Q3} IQR: {IQR}')
-    print(f'Mean of revised1 times: {revTimesMean}')
-    print(f'Min of revised1 times: {revTimesMin}')
-    print(f'Max of revised1 times: {revTimesMax}')
-    print(f'len revTimes: {len(runDataList[j].times)}')
+    #print(f'P: {runDataList[j].particleNum} L: {runDataList[j].trackLength} stdDev: {revTimesStd}')
+    #print(f'Q1: {Q1} Q3: {Q3} IQR: {IQR}')
+    #print(f'Mean of revised1 times: {revTimesMean}')
+    #print(f'Min of revised1 times: {revTimesMin}')
+    #print(f'Max of revised1 times: {revTimesMax}')
+    #print(f'len revTimes: {len(runDataList[j].times)}')
+
+
+for k in range(len(IQRModArr)):
+    print(f'IQRMod: {IQRModArr[k]}')
+    for j in range(len(IQRLimitedRuns[k])):
+        Q1 = IQRLimitedRuns[k, j].times[int(len(IQRLimitedRuns[k, j].times) / 4)]
+        Q3 = IQRLimitedRuns[k, j].times[int(len(IQRLimitedRuns[k, j].times) * (3 / 4))]
+        IQR = Q3 - Q1
+
+        boolMask = (IQRLimitedRuns[k, j].times <= (Q3 + (IQRModArr[k] * IQR)))
+        print(f'boolMask: {boolMask}')
+        IQRLimitedRuns[k, j].times = IQRLimitedRuns[k, j].times[boolMask]
+        IQRLimitedRuns[k, j].stdDevs = IQRLimitedRuns[k, j].stdDevs[boolMask]
+        IQRLimitedRuns[k, j].meanVelocities = IQRLimitedRuns[k, j].meanVelocities[boolMask]
+        IQRLimitedRuns[k, j].leadVelocities = IQRLimitedRuns[k, j].leadVelocities[boolMask]
+
+        #revTimesMax = np.max(IQRLimitedRuns[k, j].times)
+        #revTimesMean = np.mean(IQRLimitedRuns[k, j].times)
+        #revTimesStd = np.std(IQRLimitedRuns[k, j].times)
+        #revTimesMin = np.min(IQRLimitedRuns[k, j].times)
+
+        #print(f'P: {IQRLimitedRuns[k, j].particleNum} L: {IQRLimitedRuns[k, j].trackLength} stdDev: {revTimesStd}')
+        #print(f'Q1: {Q1} Q3: {Q3} IQR: {IQR}')
+        #print(f'Mean of revised1 times: {revTimesMean}')
+        #print(f'Min of revised1 times: {revTimesMin}')
+        #print(f'Max of revised1 times: {revTimesMax}')
+        #print(f'len revTimes: {len(IQRLimitedRuns[k, j].times)}')
+        print(len(IQRLimitedRuns[k, j].times))
+    
+    print(IQRLimitedRuns[0, 1].times == IQRLimitedRuns[1, 1].times)
+
+
+print(len(IQRLimitedRuns[0, 0].times))
+print()
 
 def meanOfEachComponent(list):
     copyList = np.empty(len(list))
@@ -111,6 +153,7 @@ for i in range(len(runDataList)):
 
 MparticleNumL = meanOfEachComponent(particleNumL)
 MtrackLengthL = meanOfEachComponent(trackLengthL)
+#print(f'timesL: {timesL}')
 MtimesL = meanOfEachComponent(timesL)
 MstdDevsL = meanOfEachComponent(stdDevsL)
 MmeanVelocitiesL = meanOfEachComponent(meanVelocitiesL)
@@ -118,12 +161,23 @@ MleadVelocitiesL = meanOfEachComponent(leadVelocitiesL)
 MmassesL = meanOfEachComponent(massesL)
 MindividualCollisionTimesL = meanOfEachComponent(individualCollisionTimesL)
 
-times = runDataList[runGraphIndex].times
-stdDevs = runDataList[runGraphIndex].stdDevs
-meanVelocities = runDataList[runGraphIndex].meanVelocities
-leadVelocities = runDataList[runGraphIndex].leadVelocities
-masses = runDataList[runGraphIndex].avgMasses
-individualCollisionTimes = runDataList[runGraphIndex].individualCollisionTimes
+IQRLimitedMTimesL = np.empty([len(IQRModArr), len(runDataList)])
+
+for i in range(len(IQRModArr)):
+    IQRLimitedTimesL = np.empty([len(runDataList)], dtype=object)
+    for j in range(len(runDataList)):
+        IQRLimitedTimesL[j] = IQRLimitedRuns[i, j].times
+    #print(f'IQRLimitedTimesL {IQRLimitedTimesL}')
+    IQRLimitedMTimesL[i, :] = meanOfEachComponent(IQRLimitedTimesL)
+
+#print(IQRLimitedMTimesL[0])
+
+times = runDataList[selectedRun].times
+stdDevs = runDataList[selectedRun].stdDevs
+meanVelocities = runDataList[selectedRun].meanVelocities
+leadVelocities = runDataList[selectedRun].leadVelocities
+masses = runDataList[selectedRun].avgMasses
+individualCollisionTimes = runDataList[selectedRun].individualCollisionTimes
 logInvCollisionTimes = np.log(np.array(individualCollisionTimes))  
 timesS = np.sort(times)
 timesMean = np.mean(timesS)
@@ -397,6 +451,9 @@ def scatterPRL():
     plt.plot(np.sort(MPNL), scatterPowerPRLPlot)
 
     #actual data
+    for i in range(len(IQRModArr)):
+        plt.scatter(MparticleNumL, IQRLimitedMTimesL[i, :])
+        #print(IQRLimitedMTimesL[i, :])
     plt.scatter(MparticleNumL, MtimesL)
     plt.xlabel("Number of particles")
     plt.ylabel("Mean time to end of run")
@@ -508,5 +565,6 @@ scatterPRL()
 scatterStdMVRL()
 plotMVRL()
 scatterLVMV()
+plotNormalLVMV()
 
 #print(times)
