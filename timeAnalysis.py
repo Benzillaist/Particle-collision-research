@@ -10,8 +10,8 @@ endIndex = 0
 runDataList = [];
 removedCounter = 0
 timeCutoff = 1
-selectedRun = 9
-IQRMod = 10
+selectedRun = 70
+IQRMod = 5
 
 #loading data into the code
 def getDataList(fileName, string):
@@ -101,30 +101,13 @@ for k in range(len(IQRModArr)):
         IQR = Q3 - Q1
 
         boolMask = (IQRLimitedRuns[k, j].times <= (Q3 + (IQRModArr[k] * IQR)))
-        print(f'boolMask: {boolMask}')
         IQRLimitedRuns[k, j].times = IQRLimitedRuns[k, j].times[boolMask]
         IQRLimitedRuns[k, j].stdDevs = IQRLimitedRuns[k, j].stdDevs[boolMask]
         IQRLimitedRuns[k, j].meanVelocities = IQRLimitedRuns[k, j].meanVelocities[boolMask]
         IQRLimitedRuns[k, j].leadVelocities = IQRLimitedRuns[k, j].leadVelocities[boolMask]
 
-        #revTimesMax = np.max(IQRLimitedRuns[k, j].times)
-        #revTimesMean = np.mean(IQRLimitedRuns[k, j].times)
-        #revTimesStd = np.std(IQRLimitedRuns[k, j].times)
-        #revTimesMin = np.min(IQRLimitedRuns[k, j].times)
+        print(f'P: {IQRLimitedRuns[k, j].particleNum} len revTimes: {len(IQRLimitedRuns[k, j].times)}')
 
-        #print(f'P: {IQRLimitedRuns[k, j].particleNum} L: {IQRLimitedRuns[k, j].trackLength} stdDev: {revTimesStd}')
-        #print(f'Q1: {Q1} Q3: {Q3} IQR: {IQR}')
-        #print(f'Mean of revised1 times: {revTimesMean}')
-        #print(f'Min of revised1 times: {revTimesMin}')
-        #print(f'Max of revised1 times: {revTimesMax}')
-        #print(f'len revTimes: {len(IQRLimitedRuns[k, j].times)}')
-        print(len(IQRLimitedRuns[k, j].times))
-    
-    print(IQRLimitedRuns[0, 1].times == IQRLimitedRuns[1, 1].times)
-
-
-print(len(IQRLimitedRuns[0, 0].times))
-print()
 
 def meanOfEachComponent(list):
     copyList = np.empty(len(list))
@@ -326,8 +309,6 @@ def timeHistBFL2(x, a, n):
 guesses = (20000000, 1)
 weights = np.linspace(1, 10, len(timeFitCenters))
 
-print(timeFitCenters)
-
 (a, n), cc = curve_fit(timeHistBFL2, timeFitCenters, fitTimes, p0 = guesses)
 (ua, un) = np.sqrt(np.diag(cc))
 
@@ -342,8 +323,6 @@ def timeCollisionBFL(x, a, b, c):
 
 guesses = (1e-17, 4.4, 0)
 
-print(f'individualCollisionX: {individualCollisionX}')
-print(f'individualCollisionTimes: {individualCollisionTimes}')
 
 #(a, b, c), cc = curve_fit(timeCollisionBFL, individualCollisionX, individualCollisionTimes, p0 = guesses)
 #(ua, ub, u) = np.sqrt(np.diag(cc))
@@ -434,7 +413,6 @@ def runLengthHistPolygon():
 def scatterPLRL():
     fig = plt.figure()
     ax = fig.add_subplot(projection = '3d')
-    print(f'MtimesL: {MtimesL}')
     ax.scatter(MparticleNumL, MtrackLengthL, MtimesL)
     ax.set_xlabel("Number of particles")
     ax.set_ylabel("Track length")
@@ -466,7 +444,7 @@ def scatterStdMVRL():
     ax.scatter(stdDevs, meanVelocities, revTimes)
     ax.set_xlabel('Standard deviation of velocities')
     ax.set_ylabel('Mean of velocities')
-    ax.set_zlabel('Z Label')
+    ax.set_zlabel('Run lengths')
     plt.show()
 
 #scatterplot of stddev and run length
@@ -561,6 +539,9 @@ runLengthHistLog()
 plotTimePerCollision()
 scatterPLRL()
 scatterPRL()
+
+scatterStdRL()
+plotStdRL()
 
 scatterStdMVRL()
 plotMVRL()
