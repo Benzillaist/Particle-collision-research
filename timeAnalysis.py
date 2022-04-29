@@ -161,6 +161,8 @@ meanVelocities = runDataList[selectedRun].meanVelocities
 leadVelocities = runDataList[selectedRun].leadVelocities
 masses = runDataList[selectedRun].avgMasses
 individualCollisionTimes = runDataList[selectedRun].individualCollisionTimes
+trackLength = runDataList[selectedRun].trackLength
+particleNum = runDataList[selectedRun].particleNum
 logInvCollisionTimes = np.log(np.array(individualCollisionTimes))  
 timesS = np.sort(times)
 timesMean = np.mean(timesS)
@@ -534,11 +536,26 @@ def plotTimePerCollision():
     plt.title("Average time between each collision per collision number")
     plt.show()
 
+#time between each collision as a function of the average individual collision time
+def normCollisionTime():
+    normCList = individualCollisionTimes / (trackLength / (np.mean(meanVelocities) * particleNum))
+    print(trackLength)
+    print(particleNum)
+    print(np.mean(meanVelocities))
+    print(individualCollisionTimes[0])
+    plt.plot(individualCollisionX, normCList)
+    plt.xlabel("Collision Number")
+    plt.ylabel("Collision time vs average first collision time")
+    plt.title("Normallized collision time per particle number")
+    plt.show()
+
 runLengthHistogram()
 runLengthHistLog()
 plotTimePerCollision()
 scatterPLRL()
 scatterPRL()
+
+normCollisionTime()
 
 scatterStdRL()
 plotStdRL()
