@@ -561,6 +561,7 @@ scatterStdRL()
 plotStdRL()
 
 scatterStdMVRL()
+scatterStdRL()
 plotMVRL()
 scatterLVMV()
 plotNormalLVMV()
